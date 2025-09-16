@@ -1,6 +1,6 @@
 kakao:
   api:
-    key: 3ab0a556241f96aa6395e4db898bcfc2
+    key: test_kakao_api_key
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE

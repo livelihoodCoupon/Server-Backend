@@ -35,6 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
-application.properties
 
 docs/
+
+# Secret properties files
+application-prod.yml
+application-local.yml

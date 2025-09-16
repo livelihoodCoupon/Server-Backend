@@ -86,6 +86,7 @@ public class CouponDataCollector {
 
 		log.info(">>> [ {} ] 지역, 키워드 [ {} ]로 데이터 수집을 시작합니다.", region.getName(), DEFAULT_KEYWORD);
 		new File("data/csv").mkdirs(); // Ensure data/csv directory exists
+		new File("data/geojson").mkdirs();
 		this.collectedGridCells = Collections.synchronizedList(new ArrayList<>());
 		this.collectedPlaces = Collections.synchronizedList(new ArrayList<>());
 
@@ -128,7 +129,7 @@ public class CouponDataCollector {
 			forceCollectInParallel(region.getName(), DEFAULT_KEYWORD, currentLevelPolygons, currentRadius);
 		}
 
-		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 완료.", region.getName(), DEFAULT_KEYWORD);
+		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 완료. (총 {}건)", region.getName(), DEFAULT_KEYWORD, collectedPlaces.size());
 
 		String geojsonFilename = "data/geojson/" + region.getName().replace(" ", "_") + "_grid_data.geojson";
 		exportGridDataToGeoJson(collectedGridCells, geojsonFilename);

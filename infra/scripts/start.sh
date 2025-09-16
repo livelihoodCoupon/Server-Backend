@@ -61,3 +61,12 @@ for pid in "${PIDS[@]}"; do
 done
 
 echo "모든 요청된 compose 스택이 병렬로 시작되었습니다."
+
+echo ""
+echo "=== Starting Livelihood Coupon Collector App ==="
+# .env 파일이 있는지 확인하고, 있으면 --env-file 옵션을 추가해줍니다.
+if [ -f "${INFRA_BASE_DIR}/.env" ]; then
+  ${DOCKER_COMPOSE_CMD} --env-file "${INFRA_BASE_DIR}/.env" -f "${ROOT_DIR}/docker-compose.yml" up --build -d collector-app
+else
+  ${DOCKER_COMPOSE_CMD} -f "${ROOT_DIR}/docker-compose.yml" up --build -d collector-app
+fi

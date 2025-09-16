@@ -34,9 +34,15 @@ public class RegionLoader {
 				GeoJsonFeatureCollection sigFeatureCollection = objectMapper.readValue(sigIs,
 					GeoJsonFeatureCollection.class);
 
-				return sigFeatureCollection.getFeatures().stream()
-					.map(feature -> convertFeatureToRegionData(feature, sidoMap))
-					.collect(Collectors.toList());
+				List<RegionData> regions = sigFeatureCollection.getFeatures().stream()
+						.map(feature -> convertFeatureToRegionData(feature, sidoMap))
+						.collect(Collectors.toList());
+
+				System.out.println("===== 로드된 전체 지역 목록 =====");
+				regions.stream().map(RegionData::getName).sorted().forEach(System.out::println);
+				System.out.println("=============================");
+
+				return regions;
 			}
 
 		} catch (IOException e) {

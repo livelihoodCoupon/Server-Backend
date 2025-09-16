@@ -34,8 +34,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CouponDataCollector {
 
+	public static final String DEFAULT_KEYWORD = "소비쿠폰";
 	private static final Logger log = LoggerFactory.getLogger(CouponDataCollector.class);
-	private static final String DEFAULT_KEYWORD = "놀이공원";
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;

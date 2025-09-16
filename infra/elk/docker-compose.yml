@@ -1,0 +1,88 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1 # Use a specific version compatible with Logstash/Kibana
+    container_name: livelihoodCoupon-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200" # HTTP
+      - "${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300" # Transport
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data # Persistent data
+    healthcheck:
+      test: |
+        CMD-SHELL curl -s http://localhost:9200/_cluster/health | grep -q '"status":"green"\|status":"yellow"'
+      interval: 10s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.14.1 # Must match Elasticsearch version
+    container_name: livelihoodCoupon-logstash
+    ports:
+      - "${LOGSTASH_BEATS_PORT:-5044}:5044" # For Filebeat input
+      - "${LOGSTASH_HTTP_PORT:-9600}:9600" # For Logstash API (optional)
+    volumes:
+      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf # Logstash config
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m # Adjust memory as needed
+    depends_on:
+      - elasticsearch # Ensure Elasticsearch is up before Logstash
+    healthcheck:
+      test: |
+        CMD-SHELL curl -s http://localhost:9600/ | grep -q 'logstash'
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.1 # Must match Elasticsearch version
+    container_name: livelihoodCoupon-kibana
+    ports:
+      - "${KIBANA_PORT:-5601}:5601" # Kibana UI
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Connect to Elasticsearch service name
+    depends_on:
+      - elasticsearch # Ensure Elasticsearch is up before Kibana
+    healthcheck:
+      test: |
+        CMD-SHELL curl -s http://localhost:5601/api/status | grep -q '"state":"green"'
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.14.1 # Must match ELK stack version
+    container_name: livelihoodCoupon-filebeat
+    volumes:
+      # Mount the application's log directory from the host into the Filebeat container
+      - ../../logs:/usr/share/filebeat/logs:ro
+      # Mount the filebeat.yml configuration file
+      - ./filebeat-docker.yml:/usr/share/filebeat/filebeat.yml:ro
+    command: [ "filebeat", "-e", "-strict.perms=false", "-c", "/usr/share/filebeat/filebeat.yml" ]
+    depends_on:
+      - logstash # Ensure Logstash is up before Filebeat starts sending logs
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+volumes:
+  elasticsearch_data: # Volume for Elasticsearch persistent data
+
+networks:
+  livelihoodCoupon-net:
+    external: true # This network is defined in the main infra/docker-compose.yml

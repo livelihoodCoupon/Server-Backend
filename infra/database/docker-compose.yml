@@ -1,0 +1,54 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: livelihoodCoupon-mysql
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-livelihoodCoupon_db}
+      MYSQL_USER: ${MYSQL_USER:-livelihoodCoupon_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-livelihoodCoupon_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+09:00
+      - --max_connections=200
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: livelihoodCoupon-redis
+    command: [ "sh", "-c", "exec redis-server --appendonly ${REDIS_AOF:-yes}" ]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  livelihoodCoupon-net:
+    external: true # This network is defined in the main infra/docker-compose.yml

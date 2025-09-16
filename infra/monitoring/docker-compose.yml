@@ -1,0 +1,49 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: livelihoodCoupon-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--timeout=2", "http://localhost:9090/-/healthy" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: livelihoodCoupon-grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000" # React 개발 서버(3000)와의 충돌을 피해 3001로 변경
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin} # Change this in production!
+    healthcheck:
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--timeout=2", "http://localhost:3000/api/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - livelihoodCoupon-net
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  livelihoodCoupon-net:
+    external: true # This network is defined in the main infra/docker-compose.yml

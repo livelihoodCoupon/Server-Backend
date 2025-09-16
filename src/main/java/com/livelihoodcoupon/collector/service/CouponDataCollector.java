@@ -1,15 +1,8 @@
 package com.livelihoodcoupon.collector.service;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.FileWriter;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -26,20 +19,23 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.livelihoodcoupon.collector.dto.Coord2RegionCodeResponse;
 import com.livelihoodcoupon.collector.dto.KakaoPlace;
 import com.livelihoodcoupon.collector.dto.KakaoResponse;
-
-import com.livelihoodcoupon.collector.vo.GridCellInfo;
+import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.collector.entity.ScannedGrid;
+import com.livelihoodcoupon.collector.repository.PlaceRepository;
+import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class CouponDataCollector {
 
 	private static final Logger log = LoggerFactory.getLogger(CouponDataCollector.class);
-	private static final String DEFAULT_KEYWORD = "소비쿠폰";
+	private static final String DEFAULT_KEYWORD = "놀이공원";
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;
@@ -47,19 +43,13 @@ public class CouponDataCollector {
 	private static final int API_CALL_DELAY_MS = 30; // Base delay
 	private static final int MAX_RETRIES = 5; // Max retry attempts for 429 errors
 	private static final long INITIAL_RETRY_DELAY_MS = 1000; // Initial delay for retry (1 second)
-	private final KakaoApiService kakaoApiService;
-	
-	private final ObjectMapper objectMapper;
-	private final ExecutorService executor;
-	private List<GridCellInfo> collectedGridCells;
-	private List<KakaoPlace> collectedPlaces;
 
-	public CouponDataCollector(KakaoApiService kakaoApiService,
-		ObjectMapper objectMapper) {
-		this.kakaoApiService = kakaoApiService;
-		this.objectMapper = objectMapper;
-		this.executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-	}
+	private final KakaoApiService kakaoApiService;
+	private final PlaceRepository placeRepository;
+	private final ScannedGridRepository scannedGridRepository;
+	private final CsvExportService csvExportService;
+	private final GeoJsonExportService geoJsonExportService;
+	private final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
 	@PreDestroy
 	public void shutdownExecutor() {
@@ -85,9 +75,6 @@ public class CouponDataCollector {
 		}
 
 		log.info(">>> [ {} ] 지역, 키워드 [ {} ]로 데이터 수집을 시작합니다.", region.getName(), DEFAULT_KEYWORD);
-		new File("data/csv").mkdirs(); // Ensure data/csv directory exists
-		this.collectedGridCells = Collections.synchronizedList(new ArrayList<>());
-		this.collectedPlaces = Collections.synchronizedList(new ArrayList<>());
 
 		List<List<List<Double>>> currentLevelPolygons = new ArrayList<>();
 		currentLevelPolygons.add(initialPolygon);
@@ -100,9 +87,8 @@ public class CouponDataCollector {
 			List<Callable<List<List<List<Double>>>>> tasks = new ArrayList<>();
 			for (List<List<Double>> polygonToScan : currentLevelPolygons) {
 				final int radiusForTask = currentRadius;
-				final int currentDepth = depth;
 				Callable<List<List<List<Double>>>> task = () -> scanPolygon(region.getName(), DEFAULT_KEYWORD,
-					polygonToScan, radiusForTask, currentDepth);
+					polygonToScan, radiusForTask);
 				tasks.add(task);
 			}
 
@@ -128,22 +114,19 @@ public class CouponDataCollector {
 			forceCollectInParallel(region.getName(), DEFAULT_KEYWORD, currentLevelPolygons, currentRadius);
 		}
 
-		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 완료.", region.getName(), DEFAULT_KEYWORD);
+		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 및 DB 저장 완료.", region.getName(), DEFAULT_KEYWORD);
 
-		String geojsonFilename = "data/geojson/" + region.getName().replace(" ", "_") + "_grid_data.geojson";
-		exportGridDataToGeoJson(collectedGridCells, geojsonFilename);
-		log.info("    - 격자 데이터 GeoJSON 파일로 저장 완료: {}", geojsonFilename);
-
-		String csvFilename = "data/csv/" + region.getName().replace(" ", "_") + "_places_data.csv";
-		exportPlacesToCsv(collectedPlaces, csvFilename, region.getName(), DEFAULT_KEYWORD);
-		log.info("    - 장소 데이터 CSV 파일로 저장 완료: {}", csvFilename);
+		// --- DB에 저장된 데이터를 기반으로 파일 생성 시작 ---
+		log.info(">>> [ {} ] 지역 파일 생성을 시작합니다...", region.getName());
+		csvExportService.exportSingleRegionToCsv(region.getName(), DEFAULT_KEYWORD);
+		geoJsonExportService.exportSingleRegionToGeoJson(region.getName(), DEFAULT_KEYWORD);
+		log.info(">>> [ {} ] 지역 파일 생성을 완료했습니다.", region.getName());
 	}
 
 	private List<List<List<Double>>> scanPolygon(String regionName, String keyword, List<List<Double>> polygon,
-		int radius, int depth) {
+		int radius) {
 		List<List<List<Double>>> denseSubPolygons = new ArrayList<>();
-		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(
-			polygon);
+		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(polygon);
 		List<double[]> gridCenters = GridUtil.generateGridForBoundingBox(bbox.getLatStart(),
 			bbox.getLatEnd(), bbox.getLngStart(), bbox.getLngEnd(), radius);
 
@@ -153,25 +136,42 @@ public class CouponDataCollector {
 			}
 
 			try {
-				// Use retry logic for API calls
+				Optional<ScannedGrid> existingGrid = scannedGridRepository.findByRegionNameAndKeywordAndGridCenterLatAndGridCenterLngAndGridRadius(
+					regionName, keyword, center[0], center[1], radius);
+
+				if (existingGrid.isPresent()) {
+					ScannedGrid.GridStatus status = existingGrid.get().getStatus();
+					if (status == ScannedGrid.GridStatus.COMPLETED) {
+						log.debug("    - [완료된 격자] 건너뛰기 (좌표: {},{})", center[0], center[1]);
+						continue;
+					}
+					if (status == ScannedGrid.GridStatus.SUBDIVIDED) {
+						log.debug("    - [분할된 격자] 하위 탐색 목록에 추가 (좌표: {},{})", center[0], center[1]);
+						denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
+						continue;
+					}
+				}
+
+				log.debug("    - [신규 격자] 밀집도 검사 API 호출 (좌표: {},{})", center[0], center[1]);
 				KakaoResponse response = callKakaoApiWithRetry(
 					() -> kakaoApiService.searchPlaces(keyword, center[1], center[0], radius, 1), "키워드 검색");
 				if (response == null || response.getDocuments() == null)
 					continue;
 
 				int totalCount = response.getMeta().getTotal_count();
-				int pageableCount = response.getMeta().getPageable_count();
 
 				if (totalCount > DENSE_AREA_THRESHOLD) {
-					denseSubPolygons.add(createPolygonForCell(center[0], center[1], radius));
-					collectedGridCells.add(
-						new GridCellInfo(center[0], center[1], radius, depth, totalCount, pageableCount, true));
+					denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
+					scannedGridRepository.save(ScannedGrid.builder()
+						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
+						.gridRadius(radius).status(ScannedGrid.GridStatus.SUBDIVIDED).build());
 				} else {
 					int foundCountInCell = savePaginatedPlaces(response, regionName, keyword, polygon, center, radius);
-					collectedGridCells.add(
-						new GridCellInfo(center[0], center[1], radius, depth, totalCount, pageableCount, false));
+					scannedGridRepository.save(ScannedGrid.builder()
+						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
+						.gridRadius(radius).status(ScannedGrid.GridStatus.COMPLETED).build());
 					if (foundCountInCell > 0) {
-						log.info("        - 일반 지역 (결과: {}개). {}개의 새 장소를 저장.", totalCount, foundCountInCell);
+						log.info("        - 일반 지역 (결과: {}개). {}개의 새 장소를 DB에 저장.", totalCount, foundCountInCell);
 					}
 				}
 			} catch (Exception e) {
@@ -201,8 +201,7 @@ public class CouponDataCollector {
 	}
 
 	private void forceCollectAtMaxDepth(String regionName, String keyword, List<List<Double>> polygon, int radius) {
-		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(
-			polygon);
+		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(polygon);
 		List<double[]> gridCenters = GridUtil.generateGridForBoundingBox(bbox.getLatStart(),
 			bbox.getLatEnd(), bbox.getLngStart(), bbox.getLngEnd(), radius);
 
@@ -235,18 +234,16 @@ public class CouponDataCollector {
 
 				int savedInPage = savePlaces(currentResponse.getDocuments(), regionName, keyword, regionPolygon);
 				if (savedInPage > 0) {
-					log.info("        - 페이지 {}에서 {}개의 새 장소를 저장.", currentPage, savedInPage);
+					log.info("        - 페이지 {}에서 {}개의 새 장소를 DB에 저장 시도.", currentPage, savedInPage);
 				}
 				foundCount += savedInPage;
 
-				if (currentResponse.getMeta().is_end()) {
+				if (currentResponse.getMeta().is_end())
 					break;
-				}
 
 				currentPage++;
-				if (currentPage > MAX_PAGE_PER_QUERY) {
+				if (currentPage > MAX_PAGE_PER_QUERY)
 					break;
-				}
 
 				final int pageForNextCall = currentPage;
 				currentResponse = callKakaoApiWithRetry(
@@ -263,140 +260,69 @@ public class CouponDataCollector {
 
 	private int savePlaces(List<KakaoPlace> places, String regionName, String keyword,
 		List<List<Double>> regionPolygon) {
-		int count = 0;
+		List<PlaceEntity> placeEntities = new ArrayList<>();
 		for (KakaoPlace place : places) {
 			double lat = Double.parseDouble(place.getY());
 			double lng = Double.parseDouble(place.getX());
 
-			if (!GridUtil.isPointInPolygon(lat, lng, regionPolygon))
+			if (!GridUtil.isPointInPolygon(lat, lng, regionPolygon)) {
 				continue;
+			}
 
-			// Add to collectedPlaces instead of saving to DB
-			collectedPlaces.add(place);
-			count++;
+			PlaceEntity entity = PlaceEntity.builder()
+				.placeId(place.getId())
+				.placeName(place.getPlaceName())
+				.category(place.getCategoryName())
+				.categoryGroupCode(place.getCategoryGroupCode())
+				.categoryGroupName(place.getCategoryGroupName())
+				.phone(place.getPhone())
+				.lotAddress(place.getAddressName())
+				.roadAddress(place.getRoadAddressName())
+				.lng(lng)
+				.lat(lat)
+				.placeUrl(place.getPlaceUrl())
+				.region(regionName)
+				.keyword(keyword)
+				.build();
+			placeEntities.add(entity);
 		}
-		return count;
-	}
 
-	private List<List<Double>> createPolygonForCell(double centerLat, double centerLng, int radius) {
-		double latOffset = radius * GridUtil.DEGREE_PER_METER;
-		double lngOffset =
-			radius * GridUtil.DEGREE_PER_METER / Math.cos(Math.toRadians(centerLat));
-		double latStart = centerLat - latOffset, latEnd = centerLat + latOffset;
-		double lngStart = centerLng - lngOffset, lngEnd = centerLng + lngOffset;
-		return new ArrayList<>(Arrays.asList(Arrays.asList(lngStart, latStart), Arrays.asList(lngEnd, latStart),
-			Arrays.asList(lngEnd, latEnd), Arrays.asList(lngStart, latEnd), Arrays.asList(lngStart, latStart)));
-	}
+		if (placeEntities.isEmpty()) {
+			return 0;
+		}
 
-	private String getActualRegionName(KakaoPlace place) {
 		try {
-			return callKakaoApiWithRetry(() -> {
-				Coord2RegionCodeResponse regionInfo = kakaoApiService.getRegionInfo(Double.parseDouble(place.getX()),
-					Double.parseDouble(place.getY()));
-				if (regionInfo != null && regionInfo.getDocuments() != null && !regionInfo.getDocuments().isEmpty()) {
-					return regionInfo.getDocuments()
-						.stream()
-						.filter(doc -> "B".equals(doc.getRegionType()))
-						.findFirst()
-						.map(Coord2RegionCodeResponse.RegionDocument::getAddressName)
-						.orElse(null);
-				}
-				return null;
-			}, "지역 정보 조회");
-		} catch (Exception regionEx) {
-			if (regionEx instanceof InterruptedException)
-				Thread.currentThread().interrupt();
-			log.error("        - 장소({})의 실제 지역 정보 조회 중 오류 발생: {}", place.getPlaceName(), regionEx.getMessage());
+			placeRepository.saveAll(placeEntities);
+			return placeEntities.size();
+		} catch (DataIntegrityViolationException e) {
+			log.warn("    - 데이터 저장 중 무결성 제약 조건 위반 발생 (예: 중복 데이터). 건너뜁니다.");
+			return 0;
 		}
-		return null;
 	}
 
-	// Helper method to call Kakao API with retry logic
 	private <T> T callKakaoApiWithRetry(Callable<T> apiCall, String errorMessage) throws Exception {
 		int attempts = 0;
-		long currentDelay = API_CALL_DELAY_MS; // Use the base delay for the first attempt
+		long currentDelay = API_CALL_DELAY_MS;
 
 		while (attempts < MAX_RETRIES) {
 			try {
-				Thread.sleep(currentDelay); // Apply delay before each attempt
-				return apiCall.call(); // Execute the actual API call
-			} catch (WebClientResponseException e) { // Catch specific WebClient errors
+				Thread.sleep(currentDelay);
+				return apiCall.call();
+			} catch (WebClientResponseException e) {
 				if (e.getStatusCode().value() == 429) {
 					attempts++;
 					log.warn("    - API 호출 429 오류 발생 (재시도 {}/{}) - {}", attempts, MAX_RETRIES, errorMessage);
-					currentDelay = (long)(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempts - 1)); // Exponential backoff
+					currentDelay = (long)(INITIAL_RETRY_DELAY_MS * Math.pow(2, attempts - 1));
 					if (currentDelay > 60000)
-						currentDelay = 60000; // Cap max delay at 1 minute
+						currentDelay = 60000;
 					log.warn("    - 다음 재시도까지 {}ms 대기...", currentDelay);
 				} else {
-					throw e; // Re-throw other WebClient errors
+					throw e;
 				}
-			} catch (Exception e) { // Catch other exceptions (InterruptedException, etc.)
-				throw e; // Re-throw
+			} catch (Exception e) {
+				throw e;
 			}
 		}
 		throw new RuntimeException("API 호출 최대 재시도 횟수 초과: " + errorMessage);
-	}
-
-	private void exportPlacesToCsv(List<KakaoPlace> places, String filename, String regionName, String keyword) {
-		log.info("    - 장소 데이터 CSV 파일로 저장 시작: {}", filename);
-		try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
-			// Write CSV header
-			writer.println("placeId,region,placeName,roadAddress,lotAddress,lat,lng,phone,category,keyword,categoryGroupCode,categoryGroupName,placeUrl,distance");
-
-			// Write place data
-			for (KakaoPlace place : places) {
-				// Need to get actualRegionName for each place
-				String actualRegionName = getActualRegionName(place);
-				writer.printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",%s,%s,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
-					place.getId(),
-					actualRegionName != null ? actualRegionName : regionName, // Use actualRegionName if available
-					place.getPlaceName(),
-					place.getRoadAddressName(),
-					place.getAddressName(),
-					place.getY(), // lat
-					place.getX(), // lng
-					place.getPhone(),
-					place.getCategoryName(),
-					keyword, // The keyword used for collection
-					place.getCategoryGroupCode(),
-					place.getCategoryGroupName(),
-					place.getPlaceUrl(),
-					place.getDistance()
-				);
-			}
-			log.info("    - 장소 데이터 CSV 파일 저장 완료: {}", filename);
-		} catch (IOException e) {
-			log.error("CSV 파일 저장 중 오류 발생: {}", e.getMessage());
-		}
-	}
-
-	private void exportGridDataToGeoJson(List<GridCellInfo> gridCells, String filename) {
-		Map<String, Object> geoJson = new LinkedHashMap<>();
-		geoJson.put("type", "FeatureCollection");
-		List<Map<String, Object>> features = new ArrayList<>();
-		for (GridCellInfo cell : gridCells) {
-			Map<String, Object> feature = new LinkedHashMap<>();
-			feature.put("type", "Feature");
-			Map<String, Object> geometry = new LinkedHashMap<>();
-			geometry.put("type", "Polygon");
-			geometry.put("coordinates",
-				Collections.singletonList(createPolygonForCell(cell.getLat(), cell.getLng(), cell.getRadius())));
-			feature.put("geometry", geometry);
-			Map<String, Object> properties = new LinkedHashMap<>();
-			properties.put("radius", cell.getRadius());
-			properties.put("recursionDepth", cell.getRecursionDepth());
-			properties.put("totalCount", cell.getTotalCount());
-			properties.put("pageableCount", cell.getPageableCount());
-			properties.put("isDense", cell.isDense());
-			feature.put("properties", properties);
-			features.add(feature);
-		}
-		geoJson.put("features", features);
-		try {
-			objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(filename), geoJson);
-		} catch (IOException e) {
-			log.error("GeoJSON 파일 저장 중 오류 발생: {}", e.getMessage());
-		}
 	}
 }

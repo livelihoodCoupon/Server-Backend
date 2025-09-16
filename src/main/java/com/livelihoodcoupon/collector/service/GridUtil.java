@@ -1,6 +1,7 @@
 package com.livelihoodcoupon.collector.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -72,6 +73,16 @@ public class GridUtil {
 			}
 		}
 		return gridCenters;
+	}
+
+	public static List<List<Double>> createPolygonForCell(double centerLat, double centerLng, int radius) {
+		double latOffset = radius * DEGREE_PER_METER;
+		double lngOffset =
+			radius * DEGREE_PER_METER / Math.cos(Math.toRadians(centerLat));
+		double latStart = centerLat - latOffset, latEnd = centerLat + latOffset;
+		double lngStart = centerLng - lngOffset, lngEnd = centerLng + lngOffset;
+		return new ArrayList<>(Arrays.asList(Arrays.asList(lngStart, latStart), Arrays.asList(lngEnd, latStart),
+			Arrays.asList(lngEnd, latEnd), Arrays.asList(lngStart, latEnd), Arrays.asList(lngStart, latStart)));
 	}
 
 	@Data

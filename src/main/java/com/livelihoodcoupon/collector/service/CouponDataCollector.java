@@ -330,9 +330,12 @@ public class CouponDataCollector {
 						currentDelay = 60000; // Cap max delay at 1 minute
 					log.warn("    - 다음 재시도까지 {}ms 대기...", currentDelay);
 				} else {
+					String responseBody = e.getResponseBodyAsString();
+					log.error("    - WebClient 에러 발생! 응답 본문: {}", responseBody);
 					throw e; // Re-throw other WebClient errors
 				}
 			} catch (Exception e) { // Catch other exceptions (InterruptedException, etc.)
+				log.error("    - API 호출 중 예상치 못한 오류 발생: {}", e.getMessage());
 				throw e; // Re-throw
 			}
 		}

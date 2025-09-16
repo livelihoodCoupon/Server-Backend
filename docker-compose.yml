@@ -1,7 +1,40 @@
 version: '3.8'
 
 services:
+  mysql:
+    image: mysql:8.4
+    container_name: livelihoodCoupon-mysql
+    ports:
+      - "${MYSQL_PORT}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - livelihoodCoupon-net
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: livelihoodCoupon-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - livelihoodCoupon-net
+
   collector-app:
+    depends_on:
+      mysql:
+        condition: service_healthy
     build:
       context: .
       dockerfile: Dockerfile
@@ -9,7 +42,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=dev,local
+      - SPRING_PROFILES_ACTIVE=local
       - KAKAO_API_KEY=${KAKAO_API_KEY}
     volumes:
       - ./data:/app/data
@@ -17,6 +50,10 @@ services:
     networks:
       - livelihoodCoupon-net
 
+volumes:
+  mysql_data:
+  redis_data:
+
 networks:
   livelihoodCoupon-net:
-    external: true
+    name: livelihoodCoupon-net

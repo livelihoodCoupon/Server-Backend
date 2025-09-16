@@ -1,11 +1,13 @@
 package com.livelihoodcoupon.collector.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.livelihoodcoupon.collector.dto.Coord2RegionCodeResponse;
 import com.livelihoodcoupon.collector.dto.KakaoResponse;
+import reactor.core.publisher.Mono;
 
 @Service
 public class KakaoApiService {
@@ -31,6 +33,8 @@ public class KakaoApiService {
 				.queryParam("size", 15)
 				.build())
 			.retrieve()
+			.onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
+				.flatMap(errorBody -> Mono.error(new RuntimeException("API Error: " + response.statusCode() + " - " + errorBody))))
 			.bodyToMono(KakaoResponse.class)
 			.block();
 	}
@@ -43,6 +47,8 @@ public class KakaoApiService {
 				.queryParam("y", lat)
 				.build())
 			.retrieve()
+			.onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
+				.flatMap(errorBody -> Mono.error(new RuntimeException("API Error: " + response.statusCode() + " - " + errorBody))))
 			.bodyToMono(Coord2RegionCodeResponse.class)
 			.block();
 	}

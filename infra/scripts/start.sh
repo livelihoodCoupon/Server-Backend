@@ -20,6 +20,8 @@ ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 INFRA_BASE_DIR="${ROOT_DIR}/infra"
 NETWORK_NAME="livelihoodCoupon-net"
 
+cd "$ROOT_DIR" || exit 1
+
 # ── 3️⃣ 네트워크 생성 ──
 if ! docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1; then
   echo "Creating docker network '${NETWORK_NAME}'..."
@@ -28,12 +30,12 @@ else
   echo "Docker network '${NETWORK_NAME}' exists."
 fi
 
-# ── 4️⃣ compose 디렉토리 목록 ──
+# ── 4️⃣ compose 디렉토리 목록: 부가 인프라 서비스 병렬 실행 (ELK, Monitoring) ──
 COMPOSE_DIRS=(
-  "${INFRA_BASE_DIR}/database"
   "${INFRA_BASE_DIR}/elk"
   "${INFRA_BASE_DIR}/monitoring"
 )
+
 
 # ── 5️⃣ 병렬 실행 ──
 PIDS=()
@@ -60,4 +62,16 @@ for pid in "${PIDS[@]}"; do
   wait $pid
 done
 
-echo "모든 요청된 compose 스택이 병렬로 시작되었습니다."
+echo "부가 인프라(ELK, Monitoring) compose 스택이 병렬로 시작되었습니다."
+
+# ── 7️⃣ 메인 앱 스택 실행 (DB, Redis, App) ──
+echo ""
+echo "=== Starting Main Application Stack (DB, Redis, App) ==="
+if [ -f "${ROOT_DIR}/.env" ]; then
+  ${DOCKER_COMPOSE_CMD} --project-directory "${ROOT_DIR}" --env-file "${ROOT_DIR}/.env" -f "${ROOT_DIR}/infra/database/docker-compose.yml" -f "${ROOT_DIR}/docker-compose.yml" up --build -d
+else
+  ${DOCKER_COMPOSE_CMD} --project-directory "${ROOT_DIR}" -f "${ROOT_DIR}/infra/database/docker-compose.yml" -f "${ROOT_DIR}/docker-compose.yml" up --build -d
+fi
+
+echo ""
+echo "모든 서비스가 성공적으로 시작되었습니다!"

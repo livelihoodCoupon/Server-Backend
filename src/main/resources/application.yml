@@ -15,7 +15,7 @@ spring:
 # Actuator 엔드포인트 구성
 management:
   server:
-    port: 9091 # 관리용 포트 분리
+  #    port: 9091 # 관리용 포트 분리
   endpoints:
     web:
       exposure:

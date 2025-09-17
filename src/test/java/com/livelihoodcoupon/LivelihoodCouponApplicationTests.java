@@ -1,13 +1,13 @@
 package com.livelihoodcoupon;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class LivelihoodCouponApplicationTests {
+import com.livelihoodcoupon.common.test.BaseIntegrationTest;
 
-    @Test
-    void contextLoads() {
-    }
+class LivelihoodCouponApplicationTests extends BaseIntegrationTest {
+
+	@Test
+	void contextLoads() {
+	}
 
 }

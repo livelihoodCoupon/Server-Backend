@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegionKeywordDto {
-    private String regionName;
-    private String keyword;
+	private String regionName;
+	private String keyword;
 }

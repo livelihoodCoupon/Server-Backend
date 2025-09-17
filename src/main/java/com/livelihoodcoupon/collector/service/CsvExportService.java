@@ -64,9 +64,9 @@ public class CsvExportService {
 
 		AtomicLong count = new AtomicLong(0);
 
-		try (Stream<PlaceEntity> placesStream = placeRepository.streamByRegionAndKeyword(regionName, keyword);
-			 PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(filename)))) {
-
+		try (Stream<PlaceEntity> placesStream = placeRepository
+			.streamByRegionAndKeyword(regionName, keyword); PrintWriter writer = new PrintWriter(
+			new BufferedWriter(new FileWriter(filename)))) {
 			writer.println(
 				"placeId,region,placeName,roadAddress,lotAddress,lat,lng,phone,categoryName,keyword,categoryGroupCode,categoryGroupName,placeUrl");
 

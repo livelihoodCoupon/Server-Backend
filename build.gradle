@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'checkstyle'
 }
 
 group = 'com.livelihoodCoupon'
@@ -42,6 +43,29 @@ dependencies {
     implementation 'io.micrometer:micrometer-registry-prometheus'
 }
 
+checkstyle {
+    toolVersion = '11.0.0'
+    configFile = rootProject.file('src/main/resources/codeConvention/Naver-CheckStyle-Rules.xml')
+    ignoreFailures = false
+    showViolations = true
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        html.required = true
+        xml.required = false
+        html.outputLocation = layout.buildDirectory.file("reports/checkstyle/${name}.html").get().asFile
+    }
+}
+
+tasks.named('check') {
+    dependsOn checkstyleMain
+}
+
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.named('checkstyleTest') {
+    enabled = false
 }

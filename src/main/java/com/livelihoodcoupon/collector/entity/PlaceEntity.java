@@ -36,5 +36,5 @@ public class PlaceEntity extends BaseEntity {
 	private String categoryGroupCode;
 	private String categoryGroupName;
 	private String placeUrl;
-	private String distance;
+	private Double distance;
 }

@@ -22,13 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/collections")
+@RequestMapping("/api/collect")
 public class DataCollectionController {
 
 	private final CouponDataCollector collector;
 	private final RegionLoader regionLoader;
 
-	@GetMapping("/nationwide-collections")
+	@GetMapping("/nationwide")
 	public ResponseEntity<CustomApiResponse<?>> collectNationwide() {
 		try {
 			List<RegionData> regions = regionLoader.loadRegions();
@@ -41,8 +41,8 @@ public class DataCollectionController {
 		}
 	}
 
-	@GetMapping("/{regionId}/collections")
-	public ResponseEntity<CustomApiResponse<?>> collectForRegionByName(@PathVariable("regionId") String regionName) {
+	@GetMapping("/{regionName}")
+	public ResponseEntity<CustomApiResponse<?>> collectForRegionByName(@PathVariable String regionName) {
 		try {
 			List<RegionData> allRegions = regionLoader.loadRegions();
 			Optional<RegionData> targetRegion = allRegions.stream()

@@ -44,8 +44,8 @@ for d in "${COMPOSE_DIRS[@]}"; do
     echo "=== Starting services in ${d} ==="
     pushd "${d}" >/dev/null
 
-    if [ -f "${INFRA_BASE_DIR}/.env" ]; then
-      $DOCKER_COMPOSE_CMD --env-file "${INFRA_BASE_DIR}/.env" up -d --quiet-pull &
+    if [ -f "${ROOT_DIR}/.env" ]; then
+      $DOCKER_COMPOSE_CMD --env-file "${ROOT_DIR}/.env" up -d --quiet-pull &
     else
       $DOCKER_COMPOSE_CMD up -d --quiet-pull &
     fi

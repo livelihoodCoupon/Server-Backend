@@ -1,40 +1,9 @@
-version: '3.8'
-
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: livelihoodCoupon-mysql
-    ports:
-      - "${MYSQL_PORT}:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - livelihoodCoupon-net
-    healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7.4-alpine
-    container_name: livelihoodCoupon-redis
-    ports:
-      - "${REDIS_PORT}:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - livelihoodCoupon-net
-
   collector-app:
     depends_on:
-      mysql:
+      postgres: # mysql -> postgres로 변경
         condition: service_healthy
+    restart: on-failure # 실패 시 재시작 옵션 추가
     build:
       context: .
       dockerfile: Dockerfile
@@ -44,16 +13,10 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=local
       - KAKAO_API_KEY=${KAKAO_API_KEY}
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     networks:
       - livelihoodCoupon-net
-
-volumes:
-  mysql_data:
-  redis_data:
-
-networks:
-  livelihoodCoupon-net:
-    name: livelihoodCoupon-net

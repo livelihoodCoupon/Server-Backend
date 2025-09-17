@@ -2,15 +2,20 @@
 FROM gradle:8.8.0-jdk21-alpine AS build
 WORKDIR /app
 
-# Gradle 빌드에 필요한 파일들을 먼저 복사하여 Docker 캐시를 활용합니다.
+# Gradle 빌드에 필요한 파일들을 먼저 복사합니다.
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle settings.gradle ./
+
+# 의존성을 먼저 다운로드하여 별도의 레이어에 캐시합니다.
+# build.gradle이 변경되지 않으면 이 단계는 캐시된 레이어를 사용합니다.
+RUN ./gradlew dependencies
 
 # 전체 소스 코드를 복사합니다.
 COPY src ./src
 
 # Gradle 빌드를 실행하여 실행 가능한 JAR 파일을 생성합니다. (테스트는 생략)
+# 소스 코드 변경 시 이 단계부터 다시 실행되지만, 의존성은 캐시되어 있습니다.
 RUN ./gradlew build -x test --no-daemon
 
 # 2. 실행 단계: 빌드된 JAR 파일을 가벼운 Java 21 환경에서 실행합니다.

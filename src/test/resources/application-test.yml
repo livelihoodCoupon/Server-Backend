@@ -3,7 +3,8 @@ kakao:
     key: test_kakao_api_key
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    # H2를 PostgreSQL 호환 모드로 실행합니다.
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -12,4 +13,6 @@ spring:
       ddl-auto: create-drop
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        # 테스트에서는 PostGIS의 모든 함수를 사용하기 어려우므로 표준 PostgreSQL Dialect를 사용합니다.
+        # 공간 데이터 관련 테스트는 별도의 Testcontainer 설정이 필요할 수 있습니다.
+        dialect: org.hibernate.dialect.PostgreSQLDialect

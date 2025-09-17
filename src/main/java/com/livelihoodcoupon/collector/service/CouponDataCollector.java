@@ -1,7 +1,17 @@
 package com.livelihoodcoupon.collector.service;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import jakarta.annotation.PreDestroy;
 
@@ -31,7 +41,7 @@ public class CouponDataCollector {
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;
-	private static final int MAX_RECURSION_DEPTH = 7;
+	private static final int MAX_RECURSION_DEPTH = 9;
 	private static final int API_CALL_DELAY_MS = 30; // Base delay
 	private static final int MAX_RETRIES = 5; // Max retry attempts for 429 errors
 	private static final long INITIAL_RETRY_DELAY_MS = 1000; // Initial delay for retry (1 second)
@@ -108,7 +118,8 @@ public class CouponDataCollector {
 
 		if (!currentLevelPolygons.isEmpty() && depth >= MAX_RECURSION_DEPTH) {
 			log.warn("    - 최대 재귀 깊이({})에 도달하여 마지막 {}개 지역 강제 수집 시작...", depth, currentLevelPolygons.size());
-			forceCollectInParallel(region.getName(), DEFAULT_KEYWORD, currentLevelPolygons, currentRadius, foundPlaceIds);
+			forceCollectInParallel(region.getName(), DEFAULT_KEYWORD, currentLevelPolygons, currentRadius,
+				foundPlaceIds);
 		}
 
 		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 및 DB 저장 완료.", region.getName(), DEFAULT_KEYWORD);
@@ -166,7 +177,8 @@ public class CouponDataCollector {
 						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
 						.gridRadius(radius).status(ScannedGrid.GridStatus.SUBDIVIDED).build());
 				} else {
-					int foundCountInCell = savePaginatedPlaces(response, regionName, keyword, polygon, center, radius, foundPlaceIds);
+					int foundCountInCell = savePaginatedPlaces(response, regionName, keyword, polygon, center, radius,
+						foundPlaceIds);
 					scannedGridRepository.save(ScannedGrid.builder()
 						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
 						.gridRadius(radius).status(ScannedGrid.GridStatus.COMPLETED).build());
@@ -201,7 +213,7 @@ public class CouponDataCollector {
 	}
 
 	private void forceCollectAtMaxDepth(String regionName, String keyword, List<List<Double>> polygon,
-										int radius, Set<String> foundPlaceIds) {
+		int radius, Set<String> foundPlaceIds) {
 		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(polygon);
 		List<double[]> gridCenters = GridUtil.generateGridForBoundingBox(bbox.getLatStart(),
 			bbox.getLatEnd(), bbox.getLngStart(), bbox.getLngEnd(), radius);
@@ -233,7 +245,8 @@ public class CouponDataCollector {
 					break;
 				}
 
-				int savedInPage = savePlaces(currentResponse.getDocuments(), regionName, keyword, regionPolygon, foundPlaceIds);
+				int savedInPage = savePlaces(currentResponse.getDocuments(), regionName, keyword, regionPolygon,
+					foundPlaceIds);
 				if (savedInPage > 0) {
 					log.info("        - 페이지 {}에서 {}개의 새 장소를 DB에 저장 시도.", currentPage, savedInPage);
 				}
@@ -260,7 +273,7 @@ public class CouponDataCollector {
 	}
 
 	private int savePlaces(List<KakaoPlace> places, String regionName, String keyword,
-						   List<List<Double>> regionPolygon, Set<String> foundPlaceIds) {
+		List<List<Double>> regionPolygon, Set<String> foundPlaceIds) {
 
 		List<PlaceEntity> placeEntities = new ArrayList<>();
 		for (KakaoPlace place : places) {

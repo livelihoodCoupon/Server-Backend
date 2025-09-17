@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.livelihoodcoupon.collector.dto.Coord2RegionCodeResponse;
 import com.livelihoodcoupon.collector.dto.KakaoResponse;
+import com.livelihoodcoupon.common.exception.KakaoApiException;
 
 import reactor.core.publisher.Mono;
 
@@ -36,7 +37,8 @@ public class KakaoApiService {
 			.retrieve()
 			.onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
 				.flatMap(errorBody -> Mono.error(
-					new RuntimeException("API Error: " + response.statusCode() + " - " + errorBody))))
+					new KakaoApiException("Kakao API Error: " + response.statusCode() + " - " + errorBody,
+						response.statusCode(), errorBody))))
 			.bodyToMono(KakaoResponse.class)
 			.block();
 	}
@@ -51,7 +53,8 @@ public class KakaoApiService {
 			.retrieve()
 			.onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
 				.flatMap(errorBody -> Mono.error(
-					new RuntimeException("API Error: " + response.statusCode() + " - " + errorBody))))
+					new KakaoApiException("Kakao API Error: " + response.statusCode() + " - " + errorBody,
+						response.statusCode(), errorBody))))
 			.bodyToMono(Coord2RegionCodeResponse.class)
 			.block();
 	}

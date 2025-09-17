@@ -1,4 +1,4 @@
-> 제목은 `[#Main-Issue-Number] type: 설명`의 형식으로 작성해주세요.
+> 제목은 `[#Issue-Number] type: 설명`의 형식으로 작성해주세요.
 
 ## 관련 이슈
 - 메인 이슈:

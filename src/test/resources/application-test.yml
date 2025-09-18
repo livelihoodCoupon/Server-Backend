@@ -4,6 +4,10 @@ kakao:
 spring:
   datasource:
     # H2를 PostgreSQL 호환 모드로 실행합니다.
+    # H2 테스트 환경에서 객체 타입 사용 어려운 경우 H2 데이터베이스에 PostGIS의 기능을 추가해주는 H2GIS 라이브러리를 테스트 환경에 추가하는 것도 고려해볼 필요 있음
+    # testImplementation 'org.h2gis:h2gis-functions:2.2.0'
+    # H2가 시작될 때 H2GIS를 초기화하는 INIT 스크립트를 추가해야함
+    # url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=RUNSCRIPT FROM 'classpath:h2/h2gis.sql'
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
@@ -16,3 +20,5 @@ spring:
         # 테스트에서는 PostGIS의 모든 함수를 사용하기 어려우므로 표준 PostgreSQL Dialect를 사용합니다.
         # 공간 데이터 관련 테스트는 별도의 Testcontainer 설정이 필요할 수 있습니다.
         dialect: org.hibernate.dialect.PostgreSQLDialect
+    auditing:
+      enabled: false

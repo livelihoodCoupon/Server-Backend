@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/collect")
+@RequestMapping("/admin/collect")
 public class DataCollectionController {
 
 	private final CouponDataCollector collector;

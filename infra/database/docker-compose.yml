@@ -1,24 +1,18 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: livelihoodCoupon-mysql
+  postgres:
+    image: postgis/postgis:16-3.4 # PostGIS 포함 이미지 사용
+    container_name: livelihoodCoupon-postgres
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-livelihoodCoupon_db}
-      MYSQL_USER: ${MYSQL_USER:-livelihoodCoupon_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-livelihoodCoupon_password}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      POSTGRES_DB: ${POSTGRES_DB:-livelihoodCoupon_db}
+      POSTGRES_USER: ${POSTGRES_USER:-livelihoodCoupon_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-livelihoodCoupon_password}
       TZ: Asia/Seoul
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_0900_ai_ci
-      - --default-time-zone=+09:00
-      - --max_connections=200
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1" ]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -46,7 +40,7 @@ services:
       - livelihoodCoupon-net
 
 volumes:
-  mysql_data:
+  postgres_data:
   redis_data:
 
 networks:

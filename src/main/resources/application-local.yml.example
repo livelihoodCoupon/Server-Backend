@@ -1,0 +1,12 @@
+# Copy this file to create "application-local.yml".
+# Override it by adding any information that differs from "application-dev.yml".
+
+kakao:
+  api:
+    key: your-personal-kakao-api-key
+
+#spring:
+#  datasource:
+#    url: ## If the information is different, please remove the comment and use it.
+#    username: ## If the information is different, please remove the comment and use it.
+#    password: ## If the information is different, please remove the comment and use it.

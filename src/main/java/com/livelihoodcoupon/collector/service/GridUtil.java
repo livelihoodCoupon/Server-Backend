@@ -1,6 +1,7 @@
 package com.livelihoodcoupon.collector.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import lombok.AllArgsConstructor;
@@ -40,7 +41,8 @@ public class GridUtil {
 		if (polygon == null || polygon.isEmpty()) {
 			return false;
 		}
-		int i, j;
+		int i;
+		int j;
 		boolean isInside = false;
 		int nvert = polygon.size();
 		for (i = 0, j = nvert - 1; i < nvert; j = i++) {
@@ -49,8 +51,8 @@ public class GridUtil {
 			double vert_j_lng = polygon.get(j).get(0);
 			double vert_j_lat = polygon.get(j).get(1);
 
-			if (((vert_i_lat > lat) != (vert_j_lat > lat)) &&
-				(lng < (vert_j_lng - vert_i_lng) * (lat - vert_i_lat) / (vert_j_lat - vert_i_lat) + vert_i_lng)) {
+			if (((vert_i_lat > lat) != (vert_j_lat > lat))
+				&& (lng < (vert_j_lng - vert_i_lng) * (lat - vert_i_lat) / (vert_j_lat - vert_i_lat) + vert_i_lng)) {
 				isInside = !isInside;
 			}
 		}
@@ -72,6 +74,18 @@ public class GridUtil {
 			}
 		}
 		return gridCenters;
+	}
+
+	public static List<List<Double>> createPolygonForCell(double centerLat, double centerLng, int radius) {
+		double latOffset = radius * DEGREE_PER_METER;
+		double lngOffset =
+			radius * DEGREE_PER_METER / Math.cos(Math.toRadians(centerLat));
+		double latStart = centerLat - latOffset;
+		double latEnd = centerLat + latOffset;
+		double lngStart = centerLng - lngOffset;
+		double lngEnd = centerLng + lngOffset;
+		return new ArrayList<>(Arrays.asList(Arrays.asList(lngStart, latStart), Arrays.asList(lngEnd, latStart),
+			Arrays.asList(lngEnd, latEnd), Arrays.asList(lngStart, latEnd), Arrays.asList(lngStart, latStart)));
 	}
 
 	@Data

@@ -60,9 +60,10 @@ jobs:
 
       # 8. 테스트 리포트 업로드
       - name: Upload Test Report
+        # "실제 GitHub Actions 환경이고, 이전 단계의 성공/실패 여부와 상관없이" 실행하도록 설정
         # 'always()'는 이전 단계의 성공/실패 여부와 관계없이 항상 이 단계를 실행하라는 의미입니다.
         # 테스트가 실패해야 리포트가 더 의미있기 때문입니다.
-        if: always()
+        if: always() && github.actions == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: test-report # 업로드될 파일의 이름

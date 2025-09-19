@@ -1,6 +1,6 @@
 package com.livelihoodcoupon.common.entity;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
@@ -26,8 +26,8 @@ public abstract class BaseEntity {
 
 	@CreatedDate
 	@Column(updatable = false)
-	private LocalDateTime createdAt;
+	private OffsetDateTime createdAt;
 
 	@LastModifiedDate
-	private LocalDateTime updatedAt;
+	private OffsetDateTime updatedAt;
 }

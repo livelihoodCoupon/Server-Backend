@@ -25,6 +25,7 @@ import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -39,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
+@Profile("!test")
 public class PlaceCsvBatchConfig {
 
 	private final JobRepository jobRepository;

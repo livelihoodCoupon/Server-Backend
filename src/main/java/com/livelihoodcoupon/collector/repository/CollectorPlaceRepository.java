@@ -11,7 +11,7 @@ import com.livelihoodcoupon.collector.dto.RegionKeywordDto;
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
 
 @Repository
-public interface PlaceRepository extends JpaRepository<PlaceEntity, Long> {
+public interface CollectorPlaceRepository extends JpaRepository<PlaceEntity, Long> {
 	boolean existsByPlaceId(String placeId);
 
 	@Query("SELECT p FROM PlaceEntity p WHERE p.region = :region and p.keyword = :keyword")

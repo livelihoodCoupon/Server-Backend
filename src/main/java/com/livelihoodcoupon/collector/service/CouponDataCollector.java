@@ -13,8 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import jakarta.annotation.PreDestroy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,11 +23,12 @@ import com.livelihoodcoupon.collector.dto.KakaoPlace;
 import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
-import com.livelihoodcoupon.collector.repository.PlaceRepository;
+import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -47,7 +46,7 @@ public class CouponDataCollector {
 	private static final long INITIAL_RETRY_DELAY_MS = 1000; // Initial delay for retry (1 second)
 
 	private final KakaoApiService kakaoApiService;
-	private final PlaceRepository placeRepository;
+	private final CollectorPlaceRepository collectorPlaceRepository;
 	private final ScannedGridRepository scannedGridRepository;
 	private final CsvExportService csvExportService;
 	private final GeoJsonExportService geoJsonExportService;
@@ -314,7 +313,7 @@ public class CouponDataCollector {
 		}
 
 		try {
-			placeRepository.saveAll(placeEntities);
+			collectorPlaceRepository.saveAll(placeEntities);
 			return placeEntities.size();
 		} catch (DataIntegrityViolationException e) {
 			log.warn("    - 데이터 저장 중 무결성 제약 조건 위반 발생 (예: 중복 데이터). 건너뜁니다.");

@@ -11,7 +11,7 @@ import com.livelihoodcoupon.common.response.CustomApiResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/exports")
+@RequestMapping("/admin/exports")
 @RequiredArgsConstructor
 public class CsvExportController {
 

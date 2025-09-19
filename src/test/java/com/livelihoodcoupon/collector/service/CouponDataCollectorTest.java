@@ -22,7 +22,7 @@ import com.livelihoodcoupon.collector.dto.KakaoMeta;
 import com.livelihoodcoupon.collector.dto.KakaoPlace;
 import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
-import com.livelihoodcoupon.collector.repository.PlaceRepository;
+import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
 
@@ -35,7 +35,7 @@ class CouponDataCollectorTest {
 	@Mock
 	private KakaoApiService kakaoApiService;
 	@Mock
-	private PlaceRepository placeRepository;
+	private CollectorPlaceRepository collectorPlaceRepository;
 	@Mock
 	private ScannedGridRepository scannedGridRepository;
 	@Mock
@@ -98,7 +98,7 @@ class CouponDataCollectorTest {
 
 		// then
 		// 장소 저장이 호출되었는지 검증
-		verify(placeRepository, atLeastOnce()).saveAll(any());
+		verify(collectorPlaceRepository, atLeastOnce()).saveAll(any());
 
 		// 격자 상태가 COMPLETED로 저장되었는지 검증
 		ArgumentCaptor<ScannedGrid> captor = ArgumentCaptor.forClass(ScannedGrid.class);
@@ -140,7 +140,7 @@ class CouponDataCollectorTest {
 
 		// then
 		// 밀집 지역이므로 최상위 레벨에서는 장소 저장이 호출되지 않아야 함
-		verify(placeRepository, never()).saveAll(any());
+		verify(collectorPlaceRepository, never()).saveAll(any());
 
 		// 512m 격자 상태가 SUBDIVIDED로 저장되었는지 검증
 		ArgumentCaptor<ScannedGrid> captor = ArgumentCaptor.forClass(ScannedGrid.class);
@@ -212,7 +212,7 @@ class CouponDataCollectorTest {
 		verify(kakaoApiService, never()).searchPlaces(anyString(), anyDouble(), anyDouble(), anyInt(), anyInt());
 
 		// Verify that no places were saved
-		verify(placeRepository, never()).saveAll(any());
+		verify(collectorPlaceRepository, never()).saveAll(any());
 
 		// Verify that no new progress was saved
 		verify(scannedGridRepository, never()).save(any());

@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.livelihoodcoupon.collector.dto.RegionKeywordDto;
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
-import com.livelihoodcoupon.collector.repository.PlaceRepository;
+import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class CsvExportService {
 
 	private static final Logger log = LoggerFactory.getLogger(CsvExportService.class);
-	private final PlaceRepository placeRepository;
+	private final CollectorPlaceRepository collectorPlaceRepository;
 
 	/**
 	 * DB에 저장된 모든 (지역, 키워드) 조합의 데이터를 각각의 CSV 파일로 생성합니다.
@@ -33,7 +33,7 @@ public class CsvExportService {
 	public void exportAllRegionsToCsv() {
 		log.info("전체 (지역, 키워드) 조합의 CSV 파일 내보내기 작업을 시작합니다.");
 
-		List<RegionKeywordDto> regionKeywords = placeRepository.findDistinctRegionAndKeyword();
+		List<RegionKeywordDto> regionKeywords = collectorPlaceRepository.findDistinctRegionAndKeyword();
 		if (regionKeywords.isEmpty()) {
 			log.info("내보낼 데이터가 DB에 없습니다.");
 			return;
@@ -64,7 +64,7 @@ public class CsvExportService {
 
 		AtomicLong count = new AtomicLong(0);
 
-		try (Stream<PlaceEntity> placesStream = placeRepository
+		try (Stream<PlaceEntity> placesStream = collectorPlaceRepository
 			.streamByRegionAndKeyword(regionName, keyword); PrintWriter writer = new PrintWriter(
 			new BufferedWriter(new FileWriter(filename)))) {
 			writer.println(

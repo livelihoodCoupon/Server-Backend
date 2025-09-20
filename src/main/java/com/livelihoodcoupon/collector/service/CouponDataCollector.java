@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import jakarta.annotation.PreDestroy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,7 +30,6 @@ import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 
 @Service

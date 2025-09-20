@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
  * 데이터베이스의 'place' 테이블과 직접 매핑됨 (테이블명 역시 추후 논의 후 반영 필요)
  */
 @Entity
-@Table(name = "place2")
+@Table(name = "place")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

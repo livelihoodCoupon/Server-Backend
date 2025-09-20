@@ -1,5 +1,19 @@
 package com.livelihoodcoupon.search.dto;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import com.livelihoodcoupon.collector.entity.PlaceEntity;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * 목록의 검색결과는 담는 dto
+ **/
+@Getter
+@AllArgsConstructor
 public class SearchResponse {
 
 	//@Schema(description = "장소번호", example = "324234")
@@ -28,4 +42,19 @@ public class SearchResponse {
 
 	//@Schema(description = "홈페이지주소", example = "http://www.naver.com")
 	private String placeUrl;
+
+	public static SearchResponse fromEntity(PlaceEntity placeEntity) {
+
+		return new SearchResponse(
+			placeEntity.getPlaceId(),
+			placeEntity.getPlaceName(),
+			placeEntity.getRoadAddress(),
+			placeEntity.getLotAddress(),
+			placeEntity.getLat(),
+			placeEntity.getLng(),
+			placeEntity.getPhone(),
+			placeEntity.getCategoryGroupName(),
+			placeEntity.getPlaceId()
+		);
+	}
 }

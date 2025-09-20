@@ -1,4 +1,4 @@
-package com.livelihoodcoupon.collector.entity;
+package com.livelihoodcoupon.search.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -7,32 +7,34 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import com.livelihoodcoupon.collector.dto.KakaoPlace;
-
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Data
 @Entity
-@Table(name = "local_cate")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class LocalPlaceEntity {
+@Table(name = "category")
+public class CategoryEntity {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column
-	private String place_cate;
+	@Column(name="level")
+	private String level;
 
-	@Column
-	private String place_name; // Kakao's unique place ID
+	@Column(name="category_code")
+	private String categoryCode;
 
-	@Column
-	private boolean isDown;
+	@Column(name="category_name1")
+	private String categoryName1;
+
+	@Column(name="category_name2")
+	private String categoryName2;
+
+	@Column(name="category_name3")
+	private String categoryName3;
 
 }

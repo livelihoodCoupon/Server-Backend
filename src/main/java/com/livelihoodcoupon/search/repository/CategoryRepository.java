@@ -2,8 +2,8 @@ package com.livelihoodcoupon.search.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.search.entity.AddressEntity;
+import com.livelihoodcoupon.search.entity.CategoryEntity;
 
-public interface AddressRepository extends JpaRepository<AddressEntity, Long> {
+public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> {
 }

@@ -7,9 +7,11 @@ import org.springframework.data.domain.Page;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * 검색목록을 페이징에서 사용하는 dto
+ **/
 @Getter
 @Setter
-
 public class PageResponse<T> {
 
 	//@Schema(description = "페이지 내용", example = "리스트값을 배열로.")

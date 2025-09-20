@@ -23,6 +23,10 @@ configurations {
 
 repositories {
     mavenCentral()
+
+    //komoran
+    google()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -45,6 +49,21 @@ dependencies {
     // PostGIS 의존성, PostgreSQL 드라이버 추가
     implementation 'org.hibernate.orm:hibernate-spatial:6.5.2.Final'
     runtimeOnly 'org.postgresql:postgresql'
+
+    //dotenv env 환경변수 등록
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0' // 5.x가 아닌 안정된 3.x
+
+    //단어 형태소 분석기
+    dependencies {
+        implementation 'com.github.shin285:komoran:3.3.4'  // 최신 버전 확인 권장
+    }
+
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6'
+
 }
 
 checkstyle {

@@ -1,19 +1,13 @@
 package com.livelihoodcoupon.search.service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.boot.autoconfigure.cache.CacheProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
@@ -29,7 +23,7 @@ import lombok.AllArgsConstructor;
 
 @Service
 @AllArgsConstructor
-public class SearchService {
+public class SearchService1 {
 
 	private final RedisService redisService;
 	private final SearchRepository searchRepository;

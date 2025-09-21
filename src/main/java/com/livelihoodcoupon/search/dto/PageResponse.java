@@ -1,9 +1,7 @@
 package com.livelihoodcoupon.search.dto;
 
 import java.util.List;
-
 import org.springframework.data.domain.Page;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -46,6 +44,10 @@ public class PageResponse<T> {
 
 	//@Schema(description = "끝페이지여부", example = "false")
 	private boolean isLast;
+
+	private int latitude;
+
+	private int longitude;
 
 	public PageResponse(Page<T> page, int blockSize) {
 		this.content = page.getContent();

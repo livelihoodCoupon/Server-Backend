@@ -1,18 +1,14 @@
 package com.livelihoodcoupon.search.dto;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
-
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 /**
  * 목록의 검색결과는 담는 dto
  **/
 @Getter
+@Builder
 @AllArgsConstructor
 public class SearchResponse {
 
@@ -54,7 +50,8 @@ public class SearchResponse {
 			placeEntity.getLng(),
 			placeEntity.getPhone(),
 			placeEntity.getCategoryGroupName(),
-			placeEntity.getPlaceId()
+			placeEntity.getPlaceUrl()
 		);
 	}
+
 }

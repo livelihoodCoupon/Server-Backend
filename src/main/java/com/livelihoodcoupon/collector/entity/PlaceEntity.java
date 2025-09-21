@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "collector_place", schema = "public")
+@Table(name = "collector_place")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

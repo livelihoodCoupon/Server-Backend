@@ -21,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.collector.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;
@@ -41,7 +42,7 @@ class SearchServiceTest {
 	private SearchRepository searchRepository;
 
 	@Mock
-	private KakaoMapService kakaoMapService;
+	private KakaoApiService kakaoApiService;
 
 	@Mock
 	private QueryService queryService;
@@ -51,7 +52,7 @@ class SearchServiceTest {
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
-		searchService = new SearchService(redisService, searchRepository, kakaoMapService, queryService);
+		searchService = new SearchService(redisService, searchRepository, kakaoApiService, queryService);
 	}
 
 	@Test
@@ -81,8 +82,8 @@ class SearchServiceTest {
 		when(redisService.getWordInfo(anyString())).thenReturn("address");  // Mock Redis 서비스
 
 		// KakaoMapService mock
-		when(kakaoMapService.getCoordinatesFromAddress(anyString()))
-			.thenReturn(Mono.just(new KakaoMapService.Coordinate(37.57104033689386, 127.0019782463416)));
+		when(kakaoApiService.getCoordinatesFromAddress(anyString()))
+			.thenReturn(Mono.just(new KakaoApiService.Coordinate(37.57104033689386, 127.0019782463416)));
 
 		// Specification mocking
 		Specification<PlaceEntity> spec = mock(Specification.class);

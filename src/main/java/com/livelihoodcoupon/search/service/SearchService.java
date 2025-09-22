@@ -13,6 +13,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.collector.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;
@@ -33,7 +34,7 @@ public class SearchService {
 	private static String searchNewAddress;
 	private final RedisService redisService;
 	private final SearchRepository searchRepository;
-	private final KakaoMapService kakaoMapService;
+	private final KakaoApiService kakaoApiService;
 	private final QueryService queryService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 
@@ -47,7 +48,7 @@ public class SearchService {
 		//검색어에 주소가 있을 경우 새로운 위치 가져오기
 		log.info("주소검색 {}", searchNewAddress);
 		if (!searchNewAddress.isEmpty()) {
-			kakaoMapService.getCoordinatesFromAddress(searchNewAddress)
+			kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
 				.subscribe(coordinate -> {
 					request.setLat(coordinate.latitude);
 					request.setLng(coordinate.longitude);

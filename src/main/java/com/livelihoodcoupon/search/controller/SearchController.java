@@ -32,7 +32,7 @@ SearchController {
 	 * redis 이용한 호출
 	 * 검색버튼 클릭시 위도, 경도 받아오고 api를 호출해야한다.
 	 * **/
-	@GetMapping("/v1/search")
+	@GetMapping("/search")
 	public ResponseEntity<CustomApiResponse<PageResponse<SearchResponse>>> search(
 		@Valid @ModelAttribute SearchRequest request) {
 
@@ -46,20 +46,6 @@ SearchController {
 
 		log.info("위도 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
-	}
-
-	/**
-	 * redis 임시 단어등록
-	 * 검색하기 전에 redis에 단어 등록한다.
-	 *
-	 **/
-	@GetMapping("/v1/search/redis")
-	public ResponseEntity<CustomApiResponse<String>> redisWordRegister() {
-
-		log.info("redis 임시 검색어 등록 시작");
-		redisWordRegister.wordRegister();
-
-		return ResponseEntity.ok(CustomApiResponse.success("redis 검색어 등록 완료"));
 	}
 
 }

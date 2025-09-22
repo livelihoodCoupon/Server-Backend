@@ -41,9 +41,6 @@ public class DataCollectionController {
 		}
 	}
 
-	//서울시 강남구
-	//서울시 종로구
-	//	/admin/collect/서울시 강남구
 	@GetMapping("/{regionName}")
 	public ResponseEntity<CustomApiResponse<?>> collectForRegionByName(@PathVariable String regionName) {
 		try {

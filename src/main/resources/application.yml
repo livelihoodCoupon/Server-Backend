@@ -11,9 +11,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-# jpaaudting 오류로 인해 추가
-#  main:
-#    allow-bean-definition-overriding: true
+
 # Actuator 엔드포인트 구성
 management:
   server:

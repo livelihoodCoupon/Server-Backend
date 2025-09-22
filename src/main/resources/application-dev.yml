@@ -12,5 +12,4 @@ spring:
     hibernate:
       ddl-auto: update
 
-cors:
   allowed-origins: http://localhost:8081

@@ -38,9 +38,6 @@ import lombok.extern.slf4j.Slf4j;
  *   <li><code>GET /admin/collect/nationwide</code> - 전국 데이터 수집 시작</li>
  *   <li><code>GET /admin/collect/{regionName}</code> - 특정 지역 데이터 수집 시작</li>
  * </ul>
- * 
- * @author livelihoodCoupon Team
- * @since 1.0.0
  */
 @Slf4j
 @RestController
@@ -50,16 +47,16 @@ public class DataCollectionController {
 
 	/** 소비쿠폰 데이터 수집 서비스 */
 	private final CouponDataCollector collector;
-	
+
 	/** 지역 정보 로더 서비스 */
 	private final RegionLoader regionLoader;
 
 	/**
 	 * 전국 데이터 수집 시작
 	 * 
-	 * <p>모든 지역에 대한 소비쿠폰 장소 데이터를 수집합니다. 
+	 * <p>모든 지역에 대한 소비쿠폰 장소 데이터를 수집합니다.
 	 * 이 작업은 비동기적으로 실행되며, 완료까지 상당한 시간이 소요될 수 있습니다.</p>
-	 * 
+	 *
 	 * @return 수집 시작 성공 메시지
 	 * @throws BusinessException 데이터 수집 시작 중 오류 발생 시
 	 */

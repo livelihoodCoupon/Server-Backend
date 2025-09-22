@@ -41,7 +41,6 @@ docs/
 logs/
 
 # Secret properties files
-application-prod.yml
 application-local.yml
 infra/.env
 .env

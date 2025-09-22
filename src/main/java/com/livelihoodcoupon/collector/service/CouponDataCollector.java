@@ -13,10 +13,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import jakarta.annotation.PreDestroy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -30,6 +30,7 @@ import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -147,17 +148,16 @@ public class CouponDataCollector {
 			}
 
 			try {
-				Optional<ScannedGrid> existingGrid = scannedGridRepository.findByRegionNameAndKeywordAndGridCenterLatAndGridCenterLngAndGridRadius(
-					regionName, keyword, center[0], center[1], radius);
-
-				if (existingGrid.isPresent()) {
-					ScannedGrid.GridStatus status = existingGrid.get().getStatus();
+				// Redis 캐싱을 사용한 격자 상태 확인
+				ScannedGrid cachedGrid = getCachedGrid(regionName, keyword, center[0], center[1], radius);
+				if (cachedGrid != null) {
+					ScannedGrid.GridStatus status = cachedGrid.getStatus();
 					if (status == ScannedGrid.GridStatus.COMPLETED) {
-						log.debug("    - [완료된 격자] 건너뛰기 (좌표: {},{})", center[0], center[1]);
+						log.debug("    - [캐시된 완료 격자] 건너뛰기 (좌표: {},{})", center[0], center[1]);
 						continue;
 					}
 					if (status == ScannedGrid.GridStatus.SUBDIVIDED) {
-						log.debug("    - [분할된 격자] 하위 탐색 목록에 추가 (좌표: {},{})", center[0], center[1]);
+						log.debug("    - [캐시된 분할 격자] 하위 탐색 목록에 추가 (좌표: {},{})", center[0], center[1]);
 						denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
 						continue;
 					}
@@ -173,15 +173,21 @@ public class CouponDataCollector {
 
 				if (totalCount > DENSE_AREA_THRESHOLD) {
 					denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
-					scannedGridRepository.save(ScannedGrid.builder()
+					// Redis 캐시에 분할 격자 상태 저장
+					ScannedGrid subdividedGrid = ScannedGrid.builder()
 						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
-						.gridRadius(radius).status(ScannedGrid.GridStatus.SUBDIVIDED).build());
+						.gridRadius(radius).status(ScannedGrid.GridStatus.SUBDIVIDED).build();
+					cacheGrid(subdividedGrid);
+					scannedGridRepository.save(subdividedGrid);
 				} else {
 					int foundCountInCell = savePaginatedPlaces(response, regionName, keyword, polygon, center, radius,
 						foundPlaceIds);
-					scannedGridRepository.save(ScannedGrid.builder()
+					// Redis 캐시에 완료 격자 상태 저장
+					ScannedGrid completedGrid = ScannedGrid.builder()
 						.regionName(regionName).keyword(keyword).gridCenterLat(center[0]).gridCenterLng(center[1])
-						.gridRadius(radius).status(ScannedGrid.GridStatus.COMPLETED).build());
+						.gridRadius(radius).status(ScannedGrid.GridStatus.COMPLETED).build();
+					cacheGrid(completedGrid);
+					scannedGridRepository.save(completedGrid);
 					if (foundCountInCell > 0) {
 						log.info("        - 일반 지역 (결과: {}개). {}개의 새 장소를 DB에 저장.", totalCount, foundCountInCell);
 					}
@@ -346,5 +352,44 @@ public class CouponDataCollector {
 			}
 		}
 		throw new RuntimeException("API 호출 최대 재시도 횟수 초과: " + errorMessage);
+	}
+
+	/**
+	 * Redis에서 격자 상태를 조회
+	 *
+	 * <p>지정된 좌표와 반경에 해당하는 격자의 처리 상태를 Redis 캐시에서 조회합니다.
+	 * 캐시에 데이터가 없으면 데이터베이스에서 조회하여 반환합니다.</p>
+	 *
+	 * <p><strong>캐시 키 형식:</strong> {regionName}_{keyword}_{lat}_{lng}_{radius}</p>
+	 *
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param lat 격자 중심 위도
+	 * @param lng 격자 중심 경도
+	 * @param radius 격자 반경 (미터)
+	 * @return 캐시된 격자 정보 (없으면 null)
+	 */
+	@Cacheable(value = "gridCache", key = "#regionName + '_' + #keyword + '_' + #lat + '_' + #lng + '_' + #radius")
+	public ScannedGrid getCachedGrid(String regionName, String keyword, double lat, double lng, int radius) {
+		// Redis 캐시에서 조회 (실패 시 DB에서 조회)
+		Optional<ScannedGrid> existingGrid = scannedGridRepository.findByRegionNameAndKeywordAndGridCenterLatAndGridCenterLngAndGridRadius(
+			regionName, keyword, lat, lng, radius);
+		return existingGrid.orElse(null);
+	}
+
+	/**
+	 * Redis에 격자 상태를 저장
+	 *
+	 * <p>처리된 격자의 상태 정보를 Redis 캐시에 저장합니다.
+	 * 이후 동일한 격자에 대한 조회 시 데이터베이스 접근 없이 캐시에서 빠르게 조회할 수 있습니다.</p>
+	 *
+	 * <p><strong>캐시 키 형식:</strong> {regionName}_{keyword}_{lat}_{lng}_{radius}</p>
+	 *
+	 * @param grid 저장할 격자 정보
+	 * @return 저장된 격자 정보
+	 */
+	@CachePut(value = "gridCache", key = "#grid.regionName + '_' + #grid.keyword + '_' + #grid.gridCenterLat + '_' + #grid.gridCenterLng + '_' + #grid.gridRadius")
+	public ScannedGrid cacheGrid(ScannedGrid grid) {
+		return grid;
 	}
 }

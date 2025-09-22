@@ -39,6 +39,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // Testcontainers for integration tests with PostgreSQL
     testImplementation "org.testcontainers:testcontainers:1.20.5" // testcontainers
@@ -58,6 +59,10 @@ dependencies {
     // Spring Batch 의존성 추가
     implementation 'org.springframework.boot:spring-boot-starter-batch'
 
+    // Redis 캐싱 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
     //dotenv env 환경변수 등록
     implementation 'io.github.cdimascio:dotenv-java:3.0.0' // 5.x가 아닌 안정된 3.x
 
@@ -66,9 +71,6 @@ dependencies {
         implementation 'com.github.shin285:komoran:3.3.4'  // 최신 버전 확인 권장
     }
 
-    //redis
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 }
 

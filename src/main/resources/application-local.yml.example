@@ -20,3 +20,6 @@ batch:
   csv:
     file:
       path: data/csv
+
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:8081

@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
@@ -25,6 +26,7 @@ import kr.co.shineware.nlp.komoran.model.KomoranResult;
 import kr.co.shineware.nlp.komoran.model.Token;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -46,16 +48,11 @@ public class SearchService {
 		List<SearchToken> resultList = analysisChat(query);
 
 		//검색어에 주소가 있을 경우 새로운 위치 가져오기
-		log.info("주소검색 {}", searchNewAddress);
+		log.info("현재 위치 latitude:{}, longitude:{}", request.getLat(), request.getLng());
 		if (!searchNewAddress.isEmpty()) {
-			kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
-				.subscribe(coordinate -> {
-					request.setLat(coordinate.latitude);
-					request.setLng(coordinate.longitude);
-					log.info("검색어를 기준으로 새주소 위치가져오기 위도:{}, 경도:{}", coordinate.latitude, coordinate.longitude);
-				});
+			SearchRequest result = handleAddressPosition(searchNewAddress, request).block().getBody();
+			log.info("재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
 		}
-		log.info("검색위치 latitude:{}, longitude:{}", request.getLat(), request.getLng());
 
 		//검색 쿼리 만들기
 		Specification<PlaceEntity> specList = queryService.buildDynamicSpec(resultList, request);
@@ -68,6 +65,29 @@ public class SearchService {
 
 		log.info("결과 return 총 갯수 : {}", results.getTotalElements());
 		return new PageImpl<>(dtoPage, pageable, results.getTotalElements());
+	}
+
+	/**
+	 * 주소로 위도, 경도 재탐색
+	 * **/
+	public Mono<ResponseEntity<SearchRequest>> handleAddressPosition(String searchNewAddress,
+		SearchRequest request) {
+		log.info("Mono 주소검색 {}", searchNewAddress);
+
+		return kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
+			.defaultIfEmpty(new KakaoApiService.Coordinate(0, 0))
+			.flatMap(coordinate -> {
+				// request에 좌표 세팅
+				request.setLat(coordinate.latitude);
+				request.setLng(coordinate.longitude);
+				log.info("Mono 검색어 기준 좌표 위도: {}, 경도: {}", coordinate.latitude, coordinate.longitude);
+				return Mono.just(request);
+			})
+			.map(r -> ResponseEntity.ok(r))
+			.onErrorResume(e -> {
+				log.error("Mono 좌표 검색 중 오류 발생", e);
+				return Mono.just(ResponseEntity.ok(request));
+			});
 	}
 
 	/**

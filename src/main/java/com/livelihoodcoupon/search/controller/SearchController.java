@@ -33,15 +33,14 @@ public class SearchController {
 	public ResponseEntity<CustomApiResponse<PageResponse<SearchResponse>>> search(
 		@Valid @ModelAttribute SearchRequest request) {
 
+		//request 기본 세팅
 		request.initDefaults();
-		log.info("위도 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
 
 		int maxRecordSize = 100;
 		int pageSize = 10;
 		Page<SearchResponse> pageList = search.search(request, pageSize, maxRecordSize);
 		PageResponse<SearchResponse> searchResponse = new PageResponse<>(pageList, pageSize);
 
-		log.info("위도 재세팅 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 	}
 

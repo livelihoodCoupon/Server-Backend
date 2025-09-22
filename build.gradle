@@ -33,12 +33,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-core'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'com.h2database:h2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // Testcontainers for integration tests with PostgreSQL
+    testImplementation "org.testcontainers:testcontainers:1.20.5" // testcontainers
+    testImplementation 'org.testcontainers:postgresql:1.20.5' // PostgreSQL 모듈
+    testImplementation "org.testcontainers:junit-jupiter:1.20.5" // JUnit 5 연동
 
     // 로깅, 모니터링 관련
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -49,6 +54,9 @@ dependencies {
     // PostGIS 의존성, PostgreSQL 드라이버 추가
     implementation 'org.hibernate.orm:hibernate-spatial:6.5.2.Final'
     runtimeOnly 'org.postgresql:postgresql'
+
+    // Spring Batch 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
 
     //dotenv env 환경변수 등록
     implementation 'io.github.cdimascio:dotenv-java:3.0.0' // 5.x가 아닌 안정된 3.x

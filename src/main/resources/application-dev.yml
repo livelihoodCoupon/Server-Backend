@@ -6,6 +6,9 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/livelihoodCoupon_db?sslmode=disable&connectTimeout=10&options=-c TimeZone%3DAsia/Seoul
     driver-class-name: org.postgresql.Driver
+  batch:
+    jdbc:
+      initialize-schema: always # 배치 테이블 자동 생성
     username: livelihoodCoupon_user
     password: livelihoodCoupon_password
   jpa:

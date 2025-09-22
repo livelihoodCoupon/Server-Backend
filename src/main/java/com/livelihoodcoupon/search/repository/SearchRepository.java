@@ -8,5 +8,4 @@ import com.livelihoodcoupon.collector.entity.PlaceEntity;
 
 @Repository
 public interface SearchRepository extends JpaRepository<PlaceEntity, Long>, JpaSpecificationExecutor<PlaceEntity> {
-
 }

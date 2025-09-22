@@ -39,18 +39,19 @@ public class QueryService {
 			//자연어검색 조건 추가 - 주소, 카테고리, 상가명
 			for (SearchToken token : resultList) {
 				String word = token.getMorph();
-				String field = (token.getFieldName()==null? "placeName":token.getFieldName());
-				log.info("필드 조건 시작 필드명 : {}, 단어: {}, 위도:{}, 경도:{}",field, word, request.getLat(), request.getLng());
+				String field = (token.getFieldName() == null ? "placeName" : token.getFieldName());
+				log.info("필드 조건 시작 필드명 : {}, 단어: {}, 위도:{}, 경도:{}", field, word, request.getLat(), request.getLng());
 
 				switch (field) {
 					case "address":
-						predicates.add(cb.like(root.get("roadAddress"), "%"+word.substring(0,word.length()-1)+"%"));
+						predicates.add(
+							cb.like(root.get("roadAddress"), "%" + word.substring(0, word.length() - 1) + "%"));
 						break;
 					case "category":
-						predicates.add(cb.like(root.get("category"), "%"+word+"%"));
+						predicates.add(cb.like(root.get("category"), "%" + word + "%"));
 						break;
 					default:
-						predicates.add(cb.like(root.get("placeName"), "%"+word+"%"));
+						predicates.add(cb.like(root.get("placeName"), "%" + word + "%"));
 						break;
 				}
 			}
@@ -86,6 +87,5 @@ public class QueryService {
 
 		};
 	}
-
-
 }
+

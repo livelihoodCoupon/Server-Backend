@@ -1,7 +1,9 @@
 package com.livelihoodcoupon.search.dto;
 
 import java.util.List;
+
 import org.springframework.data.domain.Page;
+
 import lombok.Getter;
 import lombok.Setter;
 

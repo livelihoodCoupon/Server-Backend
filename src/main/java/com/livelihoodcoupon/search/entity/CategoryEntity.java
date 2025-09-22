@@ -18,19 +18,19 @@ public class CategoryEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name="level")
+	@Column(name = "level")
 	private String level;
 
-	@Column(name="category_code")
+	@Column(name = "category_code")
 	private String categoryCode;
 
-	@Column(name="category_name1")
+	@Column(name = "category_name1")
 	private String categoryName1;
 
-	@Column(name="category_name2")
+	@Column(name = "category_name2")
 	private String categoryName2;
 
-	@Column(name="category_name3")
+	@Column(name = "category_name3")
 	private String categoryName3;
 
 }

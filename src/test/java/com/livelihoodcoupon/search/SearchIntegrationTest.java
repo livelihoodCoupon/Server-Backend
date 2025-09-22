@@ -1,54 +1,43 @@
 package com.livelihoodcoupon.search;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
-import com.livelihoodcoupon.common.config.JpaAuditingConfig;
-import com.livelihoodcoupon.place.controller.PlaceController;
-import com.livelihoodcoupon.search.dto.SearchRequest;
-import com.livelihoodcoupon.search.dto.SearchResponse;
-import com.livelihoodcoupon.search.repository.SearchRepository;
-import com.livelihoodcoupon.search.service.SearchService;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
 
-import static org.mockito.BDDMockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.search.repository.SearchRepository;
+import com.livelihoodcoupon.search.service.SearchService;
 
 @ActiveProfiles("test")
 @Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
 @DisplayName("Search 통합테스트")
-public class SearchIntegrationTest2 {
+public class SearchIntegrationTest {
 
+	List<PlaceEntity> places = null;
 	@Autowired
 	private MockMvc mockMvc;
-
 	@Mock
 	private SearchService searchService;
-
 	@Autowired
 	private SearchRepository searchRepository;
 
-	List<PlaceEntity> places = null;
 	@BeforeEach
 	void setUp() {
 	}
@@ -75,7 +64,7 @@ public class SearchIntegrationTest2 {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/v1/search")
-				.param("query","음식점")
+				.param("query", "음식점")
 		);
 
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
@@ -87,8 +76,10 @@ public class SearchIntegrationTest2 {
 			.andExpect(MockMvcResultMatchers.status().isOk())  // 상태 코드가 200 OK이어야 한다
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isArray())  // JSON path로 배열이 맞는지 검증
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))  // 배열의 길이
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("650685922"))  // 첫 번째 항목의 placeId 확인
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].placeName").value("짜드라"));  // 첫 번째 항목의 placeName 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("650685922"))  // 첫 번째 항목의 placeId 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[1].placeName").value("짜드라"));  // 첫 번째 항목의 placeName 확인
 	}
 
 	@Test
@@ -113,7 +104,7 @@ public class SearchIntegrationTest2 {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/v1/search")
-				.param("query","서울시 종로구")
+				.param("query", "서울시 종로구")
 		);
 
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
@@ -125,10 +116,11 @@ public class SearchIntegrationTest2 {
 			.andExpect(MockMvcResultMatchers.status().isOk())  // 상태 코드가 200 OK이어야 한다
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isArray())  // JSON path로 배열이 맞는지 검증
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(2))  // 배열의 길이
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("22318916"))  // 첫 번째 항목의 placeId 확인
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[1].placeName").value("청계뷰호프"));  // 첫 번째 항목의 placeName 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("22318916"))  // 첫 번째 항목의 placeId 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[1].placeName").value("청계뷰호프"));  // 첫 번째 항목의 placeName 확인
 	}
-
 
 	@Test
 	@DisplayName("세단어 테스트 성공")
@@ -147,7 +139,7 @@ public class SearchIntegrationTest2 {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/v1/search")
-				.param("query","서울시 종로구 참치")
+				.param("query", "서울시 종로구 참치")
 		);
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
 		System.out.println("API 응답 내용: " + responseContent);
@@ -158,8 +150,10 @@ public class SearchIntegrationTest2 {
 			.andExpect(MockMvcResultMatchers.status().isOk())  // 상태 코드가 200 OK이어야 한다
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isArray())  // JSON path로 배열이 맞는지 검증
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(1))  // 배열의 길이
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("22318916"))  // 첫 번째 항목의 placeId 확인
-			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("22318916"))  // 첫 번째 항목의 placeId 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
 
 	@Test
@@ -179,7 +173,7 @@ public class SearchIntegrationTest2 {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/v1/search")
-				.param("query","서울시 종로구 차아치치치")
+				.param("query", "서울시 종로구 차아치치치")
 		);
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
 		System.out.println("API 응답 내용: " + responseContent);
@@ -191,7 +185,6 @@ public class SearchIntegrationTest2 {
 			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isEmpty());
 	}
 
-
 	@Test
 	@DisplayName("400 검색 실패 - query 파라미터 누락")
 	void testSearch_queryMissing() throws Exception {
@@ -202,8 +195,8 @@ public class SearchIntegrationTest2 {
 				.andDo(print());
 	}
 
-
 	@Test
+	@DisplayName("reds 단어 등록 성공")
 	void testRedisWordRegister() throws Exception {
 
 		//when

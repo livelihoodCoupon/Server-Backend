@@ -5,6 +5,7 @@ import java.util.Map;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+
 import lombok.Data;
 
 @Data
@@ -54,6 +55,7 @@ public class RedisService {
 		String key = PREFIX_SEARCH + word;
 		return hashOps.entries(key);  // 해당 단어의 모든 필드 값 반환
 	}
+
 	/**
 	 * 주소 단어 필드 조회
 	 * @param word 주소 단어 (예: 동성로)
@@ -64,5 +66,4 @@ public class RedisService {
 		String key = PREFIX_SEARCH + word;
 		return hashOps.entries(key).get("field");  // 해당 단어의 모든 필드 값 반환
 	}
-
 }

@@ -1,5 +1,7 @@
 package com.livelihoodcoupon.search.dto;
+
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -55,3 +57,4 @@ public class SearchResponse {
 	}
 
 }
+

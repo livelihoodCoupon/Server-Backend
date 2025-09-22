@@ -23,7 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api")
-public class SearchController {
+public class
+SearchController {
 	private final SearchService search;
 	private final RedisWordRegister redisWordRegister;
 
@@ -33,11 +34,11 @@ public class SearchController {
 	 * **/
 	@GetMapping("/v1/search")
 	public ResponseEntity<CustomApiResponse<PageResponse<SearchResponse>>> search(
-		@Valid @ModelAttribute SearchRequest request){
+		@Valid @ModelAttribute SearchRequest request) {
 
 		request.initDefaults();
 		log.info("위도 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
-		
+
 		int maxRecordSize = 100;
 		int pageSize = 10;
 		Page<SearchResponse> pageList = search.search(request, pageSize, maxRecordSize);
@@ -53,7 +54,7 @@ public class SearchController {
 	 *
 	 **/
 	@GetMapping("/v1/search/redis")
-	public ResponseEntity<CustomApiResponse<String>> redisWordRegister(){
+	public ResponseEntity<CustomApiResponse<String>> redisWordRegister() {
 
 		log.info("redis 임시 검색어 등록 시작");
 		redisWordRegister.wordRegister();
@@ -62,3 +63,4 @@ public class SearchController {
 	}
 
 }
+

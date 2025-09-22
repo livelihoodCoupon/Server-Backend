@@ -8,22 +8,23 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class RedisWordRegister {
 	private final RedisService redisService;
+
 	public RedisWordRegister(RedisService redisService) {
 		this.redisService = redisService;
 	}
-	public void wordRegister(){
 
+	public void wordRegister() {
 
-			//address 등록
-			redisService.saveWord("서울시", "address", "시", "");
-			redisService.saveWord("부산시", "address", "시", "");
-			redisService.saveWord("대구시", "address", "시", "");
-			redisService.saveWord("인천시", "address", "시", "");
-			redisService.saveWord("광주시", "address", "시", "");
-			redisService.saveWord("대전시", "address", "시", "");
-			redisService.saveWord("울산시", "address", "시", "");
-			redisService.saveWord("경기시", "address", "시", "");
-		if(!redisService.getRedisTemplate().hasKey("word:서울")) {
+		//address 등록
+		redisService.saveWord("서울시", "address", "시", "");
+		redisService.saveWord("부산시", "address", "시", "");
+		redisService.saveWord("대구시", "address", "시", "");
+		redisService.saveWord("인천시", "address", "시", "");
+		redisService.saveWord("광주시", "address", "시", "");
+		redisService.saveWord("대전시", "address", "시", "");
+		redisService.saveWord("울산시", "address", "시", "");
+		redisService.saveWord("경기시", "address", "시", "");
+		if (!redisService.getRedisTemplate().hasKey("word:서울")) {
 
 			redisService.saveWord("충청북도", "address", "시", "");
 			redisService.saveWord("충청남도", "address", "시", "");
@@ -157,9 +158,9 @@ public class RedisWordRegister {
 			log.info("address 동,면 등록");
 		}
 
-		log.info("등록 결과 "+redisService.getRedisTemplate().hasKey("category:음식점"));
+		log.info("등록 결과 " + redisService.getRedisTemplate().hasKey("category:음식점"));
 
-		if(!redisService.getRedisTemplate().hasKey("word:음식점")) {
+		if (!redisService.getRedisTemplate().hasKey("word:음식점")) {
 			redisService.saveWord("음식점", "category", "1차", "");
 			redisService.saveWord("숙박", "category", "1차", "");
 			redisService.saveWord("카페", "category", "1차", "");
@@ -195,8 +196,5 @@ public class RedisWordRegister {
 			redisService.saveWord("야영", "category", "2차", "숙박");
 			log.info("category 숙박 2차 등록");
 		}
-
-
 	}
-
 }

@@ -3,13 +3,15 @@ package com.livelihoodcoupon.search.dto;
 import java.util.Objects;
 import java.util.Optional;
 
+import jakarta.validation.constraints.NotBlank;
+
 import org.springframework.validation.annotation.Validated;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.validation.constraints.NotBlank;
+
 /**
  * 검색파라미터를 가져오는 dto
  **/

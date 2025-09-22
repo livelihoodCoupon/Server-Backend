@@ -1,20 +1,16 @@
 kakao:
   api:
-    key: bf79f2591846a9aea902389b1953f00c
+    key: ${KAKAO_API_KEY}
 spring:
-  config:
-    import: "optional:file:.env"
   datasource:
-    url: jdbc:postgresql://localhost:5432/livelihoodCoupon_db?sslmode=disable&connectTimeout=10&options=-c TimeZone%3DAsia/Seoul
-    username: livelihoodCoupon_user
-    password: livelihoodCoupon_password
+    url: jdbc:postgresql://postgres:5432/livelihoodCoupon_db?sslmode=disable&connectTimeout=10&options=-c TimeZone%3DAsia/Seoul
+    driver-class-name: org.postgresql.Driver
   batch:
     jdbc:
-      initialize-schema: always
+      initialize-schema: always # 배치 테이블 자동 생성
   jpa:
     hibernate:
       ddl-auto: update
-batch:
-  csv:
-    file:
-      path: data/csv
+
+cors:
+  allowed-origins: http://localhost:8081

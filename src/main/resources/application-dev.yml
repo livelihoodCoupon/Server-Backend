@@ -1,28 +1,15 @@
-# Copy this file to create "application-local.yml".
-# Override it by adding any information that differs from "application-dev.yml".
-spring:
-  config:
-    import: "optional:file:.env"
-  datasource:
-    url: jdbc:postgresql://localhost:5432/livelihoodCoupon_db?sslmode=disable&connectTimeout=10&options=-c TimeZone%3DAsia/Seoul
-    driver-class-name: org.postgresql.Driver
-  batch:
-    jdbc:
-      initialize-schema: always # 배치 테이블 자동 생성
-    username: livelihoodCoupon_user
-    password: livelihoodCoupon_password
-  jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 kakao:
   api:
     key: bf79f2591846a9aea902389b1953f00c
-
-
-#spring:
-#  datasource:
-#    url: ## If the information is different, please remove the comment and use it.
-#    username: ## If the information is different, please remove the comment and use it.
-#    password: ## If the information is different, please remove the comment and use it.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/livelihoodCoupon_db?sslmode=disable&connectTimeout=10&options=-c TimeZone%3DAsia/Seoul
+    driver-class-name: org.postgresql.Driver
+    username: livelihoodCoupon_user
+    password: livelihoodCoupon_password
+  batch:
+    jdbc:
+      initialize-schema: always # 배치 테이블 자동 생성
+  jpa:
+    hibernate:
+      ddl-auto: update

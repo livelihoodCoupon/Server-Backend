@@ -26,9 +26,6 @@ import reactor.core.publisher.Mono;
  *   <li><code>/v2/local/search/keyword.json</code> - 키워드 기반 장소 검색</li>
  *   <li><code>/v2/local/geo/coord2regioncode.json</code> - 좌표를 행정구역 코드로 변환</li>
  * </ul>
- * 
- * @author livelihoodCoupon Team
- * @since 1.0.0
  */
 @Service
 public class KakaoApiService {

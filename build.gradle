@@ -26,7 +26,7 @@ repositories {
 
     //komoran
     google()
-    maven { url = uri('https://jitpack.io') }
+    maven {url = uri('https://jitpack.io')  }
 }
 
 dependencies {
@@ -72,6 +72,8 @@ dependencies {
 
     // Spring Batch 의존성 추가
     implementation 'org.springframework.boot:spring-boot-starter-batch'
+    // Spring Batch 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
 
 
 }
@@ -102,11 +104,9 @@ tasks.named('test') {
 tasks.named('checkstyleTest') {
     enabled = false
 }
-/*
 //Test 관련 의존성
 tasks.withType(Test) {
     useJUnitPlatform()  //JUnit 5 기반 테스트를 사용하겠다는 설정
     jvmArgs "-XX:+EnableDynamicAgentLoading" //ByteBuddy/Mockito 등의 동적 에이전트 경고 제거를 위한 JVM 플래그
     jvmArgs '-Xshare:off' // JVM 아규먼트 설정
 }
-*/

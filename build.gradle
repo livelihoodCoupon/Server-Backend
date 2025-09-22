@@ -26,7 +26,7 @@ repositories {
 
     //komoran
     google()
-    maven {url = uri('https://jitpack.io')  }
+    maven { url = uri('https://jitpack.io') }
 }
 
 dependencies {
@@ -69,12 +69,6 @@ dependencies {
     //redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-    // Spring Batch 의존성 추가
-    implementation 'org.springframework.boot:spring-boot-starter-batch'
-    // Spring Batch 의존성 추가
-    implementation 'org.springframework.boot:spring-boot-starter-batch'
-
 
 }
 

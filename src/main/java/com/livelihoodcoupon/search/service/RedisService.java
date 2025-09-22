@@ -7,13 +7,14 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Data
 @Service
 public class RedisService {
 
-	private final String PREFIX_SEARCH = "word:";
-	private final String PREFIX_SEARCH_CATEGORY = "category:";
+	private final String searchPrefix = "word:";
 
 	private final RedisTemplate<String, String> redisTemplate;
 	private final HashOperations<String, String, String> hashOps;
@@ -38,12 +39,12 @@ public class RedisService {
 	 * @param subfield 3단계 중 어느 단계인지 (시, 구, 동)
 	 * @param parent   상위 주소명 (없으면 빈 문자열)
 	 */
-
 	public void saveWord(String word, String field, String subfield, String parent) {
-		String key = PREFIX_SEARCH + word;
+		String key = searchPrefix + word;
 		hashOps.put(key, "field", field);
 		hashOps.put(key, "subfield", subfield);
 		hashOps.put(key, "parent", parent == null ? "" : parent);
+		log.info("Redis 저장: key={}, field={}, subfield={}, parent={}", key, field, subfield, parent);
 	}
 
 	/**
@@ -52,7 +53,7 @@ public class RedisService {
 	 * @return 해당 단어의 필드 값들 (field, subfield, parent)
 	 */
 	public Map<String, String> getWordMap(String word) {
-		String key = PREFIX_SEARCH + word;
+		String key = searchPrefix + word;
 		return hashOps.entries(key);  // 해당 단어의 모든 필드 값 반환
 	}
 
@@ -61,9 +62,8 @@ public class RedisService {
 	 * @param word 주소 단어 (예: 동성로)
 	 * @return address
 	 */
-
 	public String getWordInfo(String word) {
-		String key = PREFIX_SEARCH + word;
+		String key = searchPrefix + word;
 		return hashOps.entries(key).get("field");  // 해당 단어의 모든 필드 값 반환
 	}
 }

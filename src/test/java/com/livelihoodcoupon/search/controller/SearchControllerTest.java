@@ -78,7 +78,7 @@ public class SearchControllerTest {
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
-			get("/api/v1/search")
+			get("/api/search")
 				.param("query", query)
 		);
 
@@ -125,7 +125,7 @@ public class SearchControllerTest {
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
-			get("/api/v1/search")
+			get("/api/search")
 				.param("query", query)
 		);
 
@@ -163,7 +163,7 @@ public class SearchControllerTest {
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
-			get("/api/v1/search")
+			get("/api/search")
 				.param("query", query)
 		);
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
@@ -185,24 +185,10 @@ public class SearchControllerTest {
 	@DisplayName("400 검색 실패 - query 파라미터 누락")
 	void testSearch_queryMissing() throws Exception {
 		ResultActions resultActions =
-			mockMvc.perform(get("/api/v1/search"))
+			mockMvc.perform(get("/api/search"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error.message").value("query: 검색어는 필수입니다."))
 				.andDo(print());
-	}
-
-	@Test
-	@DisplayName("reds 단어 등록 성공")
-	void testRedisWordRegister() throws Exception {
-
-		//when
-		ResultActions resultActions = mockMvc.perform(
-			get("/api/v1/search/redis")
-		);
-		//then
-		resultActions.andExpect(status().isOk())
-			.andExpect(MockMvcResultMatchers.status().isOk())  // 상태 코드가 200 OK이어야 한다
-			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true));  // 성공 메시지 확인
 	}
 
 }

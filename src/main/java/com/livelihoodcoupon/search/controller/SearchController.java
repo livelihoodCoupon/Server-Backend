@@ -13,7 +13,6 @@ import com.livelihoodcoupon.common.response.CustomApiResponse;
 import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
-import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
 
 import lombok.AllArgsConstructor;
@@ -23,10 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api")
-public class
-SearchController {
+public class SearchController {
 	private final SearchService search;
-	private final RedisWordRegister redisWordRegister;
 
 	/**
 	 * redis 이용한 호출
@@ -44,7 +41,7 @@ SearchController {
 		Page<SearchResponse> pageList = search.search(request, pageSize, maxRecordSize);
 		PageResponse<SearchResponse> searchResponse = new PageResponse<>(pageList, pageSize);
 
-		log.info("위도 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
+		log.info("위도 재세팅 : {}, 경도 : {} 기본 세팅", request.getLat(), request.getLng());
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 	}
 

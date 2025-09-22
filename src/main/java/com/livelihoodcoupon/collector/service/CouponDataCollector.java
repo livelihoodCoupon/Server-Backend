@@ -60,9 +60,18 @@ public class CouponDataCollector {
 		executor.shutdown();
 	}
 
+	/**
+	 * 여러 지역에 대한 소비쿠폰 데이터 수집을 시작합니다.
+	 *
+	 * <p>전국 또는 여러 지역의 소비쿠폰 장소 데이터를 순차적으로 수집합니다.
+	 * 각 지역별로 독립적인 수집 프로세스를 실행하며, MDC 로깅을 통해 추적 가능합니다.</p>
+	 *
+	 * @param regions 수집할 지역 목록 (RegionData 리스트)
+	 */
 	public void collectForRegions(List<RegionData> regions) {
 		try (MdcLogging.MdcContext ignored = MdcLogging.withContext("traceId", UUID.randomUUID().toString())) {
 			log.info("======== 전체 지역, 키워드 [{}] 데이터 수집 시작 ========", DEFAULT_KEYWORD);
+			// 각 지역별로 순차적으로 데이터 수집 실행
 			for (RegionData region : regions) {
 				collectForSingleRegion(region);
 			}
@@ -70,10 +79,27 @@ public class CouponDataCollector {
 		}
 	}
 
+	/**
+	 * 단일 지역에 대한 소비쿠폰 데이터 수집을 실행합니다.
+	 *
+	 * <p>지정된 지역의 폴리곤을 기반으로 격자 시스템을 구축하고, 각 격자별로 카카오 API를 호출하여
+	 * 소비쿠폰 장소 데이터를 수집합니다. 밀집도가 높은 지역은 재귀적으로 세분화하여 수집합니다.</p>
+	 *
+	 * <h3>수집 프로세스:</h3>
+	 * <ol>
+	 *   <li>지역 폴리곤 유효성 검사</li>
+	 *   <li>초기 격자 생성 및 밀집도 검사</li>
+	 *   <li>밀집 지역 재귀적 세분화 (최대 5단계)</li>
+	 *   <li>수집된 데이터 DB 저장</li>
+	 *   <li>CSV 및 GeoJSON 파일 생성</li>
+	 * </ol>
+	 *
+	 * @param region 수집할 지역 정보 (폴리곤 좌표 포함)
+	 */
 	public void collectForSingleRegion(RegionData region) {
-
 		long startTime = System.currentTimeMillis();
 
+		// 1. 지역 폴리곤 유효성 검사
 		List<List<Double>> initialPolygon = region.getPolygon();
 		if (initialPolygon == null || initialPolygon.isEmpty()) {
 			log.warn("    - 경고: [ {} ] 지역에 폴리곤(polygon)이 정의되지 않아 건너뜁니다.", region.getName());
@@ -82,16 +108,20 @@ public class CouponDataCollector {
 
 		log.info(">>> [ {} ] 지역, 키워드 [ {} ]로 데이터 수집을 시작합니다.", region.getName(), DEFAULT_KEYWORD);
 
+		// 중복 방지를 위한 발견된 장소 ID 집합
 		Set<String> foundPlaceIds = ConcurrentHashMap.newKeySet();
 
+		// 2. 초기 격자 생성 및 밀집도 검사
 		List<List<List<Double>>> currentLevelPolygons = new ArrayList<>();
 		currentLevelPolygons.add(initialPolygon);
 		int currentRadius = INITIAL_GRID_RADIUS_METERS;
 		int depth = 0;
 
+		// 3. 밀집 지역 재귀적 세분화 (최대 5단계) & 4. 수집된 데이터 DB 저장
 		while (!currentLevelPolygons.isEmpty() && depth < MAX_RECURSION_DEPTH) {
 			log.info("    - [{}단계, 반경 {}m] 총 {}개 지역 병렬 탐색 시작...", depth, currentRadius, currentLevelPolygons.size());
 
+			// 각 격자별 처리
 			List<Callable<List<List<List<Double>>>>> tasks = new ArrayList<>();
 			for (List<List<Double>> polygonToScan : currentLevelPolygons) {
 				final int radiusForTask = currentRadius;
@@ -100,6 +130,7 @@ public class CouponDataCollector {
 				tasks.add(task);
 			}
 
+			// 다음 단계 격자 생성
 			List<List<List<Double>>> nextLevelPolygons = new CopyOnWriteArrayList<>();
 			try {
 				List<Future<List<List<List<Double>>>>> futures = executor.invokeAll(tasks);
@@ -125,7 +156,7 @@ public class CouponDataCollector {
 
 		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 및 DB 저장 완료.", region.getName(), DEFAULT_KEYWORD);
 
-		// --- DB에 저장된 데이터를 기반으로 파일 생성 시작 ---
+		// 5. DB에 저장된 데이터를 기반으로 CSV 및 GeoJSON 파일 생성
 		log.info(">>> [ {} ] 지역 파일 생성을 시작합니다...", region.getName());
 		csvExportService.exportSingleRegionToCsv(region.getName(), DEFAULT_KEYWORD);
 		geoJsonExportService.exportSingleRegionToGeoJson(region.getName(), DEFAULT_KEYWORD);
@@ -135,43 +166,68 @@ public class CouponDataCollector {
 		log.info(">>> [ {} ] 지역 수집 완료. 총 소요 시간: {}ms", region.getName(), (endTime - startTime));
 	}
 
+	/**
+	 * 폴리곤 영역을 격자로 나누어 소비쿠폰 장소 데이터를 수집합니다.
+	 *
+	 * <p>지정된 폴리곤을 격자로 분할하고, 각 격자별로 카카오 API를 호출하여 소비쿠폰 장소를 검색합니다.
+	 * 밀집도가 높은 격자는 하위 폴리곤으로 분할하여 재귀적으로 처리합니다.</p>
+	 *
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param polygon 검색할 폴리곤 좌표
+	 * @param radius 격자 반경 (미터)
+	 * @param foundPlaceIds 중복 방지를 위한 발견된 장소 ID 집합
+	 * @return 밀집도가 높아 재분할이 필요한 하위 폴리곤 목록
+	 */
 	private List<List<List<Double>>> scanPolygon(String regionName, String keyword, List<List<Double>> polygon,
 		int radius, Set<String> foundPlaceIds) {
 		List<List<List<Double>>> denseSubPolygons = new ArrayList<>();
+
+		// 1. 폴리곤의 경계 상자(Bounding Box) 계산
 		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(polygon);
+
+		// 2. 경계 상자 내에서 격자 중심점들 생성
 		List<double[]> gridCenters = GridUtil.generateGridForBoundingBox(bbox.getLatStart(),
 			bbox.getLatEnd(), bbox.getLngStart(), bbox.getLngEnd(), radius);
 
+		// 3. 각 격자 중심점에 대해 데이터 수집 수행
 		for (double[] center : gridCenters) {
-			if (!GridUtil.isPointInPolygon(center[0], center[1], polygon)) {
+			// 3-1. 격자 중심점이 폴리곤 내부에 있는지 확인 (없으면 넘어감)
+			if (GridUtil.isPointNotInPolygon(center[0], center[1], polygon)) {
 				continue;
 			}
 
 			try {
-				// Redis 캐싱을 사용한 격자 상태 확인
+				// 3-2. Redis 캐싱을 사용한 격자 상태 확인: 이미 처리된 격자인지 확인 (중복 처리 방지)
 				ScannedGrid cachedGrid = getCachedGrid(regionName, keyword, center[0], center[1], radius);
 				if (cachedGrid != null) {
 					ScannedGrid.GridStatus status = cachedGrid.getStatus();
 					if (status == ScannedGrid.GridStatus.COMPLETED) {
+            // 이미 완료된 격자는 넘어감
 						log.debug("    - [캐시된 완료 격자] 건너뛰기 (좌표: {},{})", center[0], center[1]);
 						continue;
 					}
 					if (status == ScannedGrid.GridStatus.SUBDIVIDED) {
+            // 분할된 격자는 하위 탐색 목록에 추가 후 넘어감
 						log.debug("    - [캐시된 분할 격자] 하위 탐색 목록에 추가 (좌표: {},{})", center[0], center[1]);
 						denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
 						continue;
 					}
 				}
 
+				// 3-3. (이미 완료하거나 분할 처리한 격자가 아닌 탐색 대상) 신규 격자에 대해 카카오 API 호출하여 밀집도 검사
 				log.debug("    - [신규 격자] 밀집도 검사 API 호출 (좌표: {},{})", center[0], center[1]);
 				KakaoResponse response = callKakaoApiWithRetry(
 					() -> kakaoApiService.searchPlaces(keyword, center[1], center[0], radius, 1), "키워드 검색");
 				if (response == null || response.getDocuments() == null)
 					continue;
 
+				// 3-4. API 응답에서 총 장소 수 확인
 				int totalCount = response.getMeta().getTotal_count();
 
+				// 3-5. 밀집도에 따른 처리 분기
 				if (totalCount > DENSE_AREA_THRESHOLD) {
+					// 밀집도가 높은 지역: 하위 폴리곤으로 분할하여 재귀 처리
 					denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
 					// Redis 캐시에 분할 격자 상태 저장
 					ScannedGrid subdividedGrid = ScannedGrid.builder()
@@ -180,6 +236,7 @@ public class CouponDataCollector {
 					cacheGrid(subdividedGrid);
 					scannedGridRepository.save(subdividedGrid);
 				} else {
+					// 일반 지역: 페이지네이션을 통해 모든 장소 데이터 수집 및 저장
 					int foundCountInCell = savePaginatedPlaces(response, regionName, keyword, polygon, center, radius,
 						foundPlaceIds);
 					// Redis 캐시에 완료 격자 상태 저장
@@ -201,6 +258,15 @@ public class CouponDataCollector {
 		return denseSubPolygons;
 	}
 
+	/**
+	 * 최대 재귀 깊이에 도달하여 강제로 수집을 (병렬적으로) 시작합니다.
+	 * <p>내부에서 forceCollectAtMaxDepth() 호출</p>
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param polygons 검색할 폴리곤 좌표
+	 * @param radius 격자 반경 (미터)
+	 * @param foundPlaceIds 중복 방지를 위한 발견된 장소 ID 집합
+	 */
 	private void forceCollectInParallel(String regionName, String keyword, List<List<List<Double>>> polygons,
 		int radius, Set<String> foundPlaceIds) {
 		List<Callable<Void>> tasks = new ArrayList<>();
@@ -218,6 +284,14 @@ public class CouponDataCollector {
 		}
 	}
 
+	/**
+	 * 최대 재귀 깊이에 도달하여 강제로 수집을 시작합니다.
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param polygon 검색할 폴리곤 좌표
+	 * @param radius 격자 반경 (미터)
+	 * @param foundPlaceIds 중복 방지를 위한 발견된 장소 ID 집합
+	 */
 	private void forceCollectAtMaxDepth(String regionName, String keyword, List<List<Double>> polygon,
 		int radius, Set<String> foundPlaceIds) {
 		GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(polygon);
@@ -225,16 +299,29 @@ public class CouponDataCollector {
 			bbox.getLatEnd(), bbox.getLngStart(), bbox.getLngEnd(), radius);
 
 		for (double[] center : gridCenters) {
-			if (!GridUtil.isPointInPolygon(center[0], center[1], polygon))
+			if (GridUtil.isPointNotInPolygon(center[0], center[1], polygon))
 				continue;
 			savePaginatedPlaces(null, regionName, keyword, polygon, center, radius, foundPlaceIds);
 		}
 	}
 
+	/**
+	 * 페이지네이션 검색 및 장소 저장을 수행합니다.
+	 * <p>내부에서 savePlaces() 호출</p>
+	 * @param firstPageResponse 첫 페이지 응답
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param regionPolygon 지역 폴리곤 좌표
+	 * @param center 격자 중심점
+	 * @param radius 격자 반경 (미터)
+	 * @param foundPlaceIds 중복 방지를 위한 발견된 장소 ID 집합
+	 * @return 실제로 저장된 장소 수
+	 */
 	private int savePaginatedPlaces(KakaoResponse firstPageResponse, String regionName, String keyword,
 		List<List<Double>> regionPolygon, double[] center, int radius, Set<String> foundPlaceIds) {
 		int foundCount = 0;
 		try {
+			// 1. 첫 페이지 응답 처리
 			KakaoResponse currentResponse = firstPageResponse;
 			int currentPage = 1;
 
@@ -245,7 +332,8 @@ public class CouponDataCollector {
 					"페이지네이션 검색 (1페이지)");
 			}
 
-			while (currentPage <= MAX_PAGE_PER_QUERY) {
+			// 2. 페이지네이션 검색 및 장소 저장
+			while (true) {
 				if (currentResponse == null || currentResponse.getDocuments() == null || currentResponse.getDocuments()
 					.isEmpty()) {
 					break;
@@ -265,10 +353,11 @@ public class CouponDataCollector {
 				if (currentPage > MAX_PAGE_PER_QUERY)
 					break;
 
+				// 3. 다음 페이지 검색
 				final int pageForNextCall = currentPage;
 				currentResponse = callKakaoApiWithRetry(
 					() -> kakaoApiService.searchPlaces(keyword, center[1], center[0], radius, pageForNextCall),
-					"페이지네이션 검색 ({}페이지)".formatted(currentPage));
+					"페이지네이션 검색 ({%d}페이지)".formatted(currentPage));
 			}
 		} catch (Exception e) {
 			if (e instanceof InterruptedException)
@@ -278,23 +367,47 @@ public class CouponDataCollector {
 		return foundCount;
 	}
 
+	/**
+	 * 카카오 API에서 수집한 장소 데이터를 데이터베이스에 저장합니다.
+	 *
+	 * <p>이 메서드는 데이터 수집 프로세스의 핵심 부분으로, 다음과 같은 과정을 거칩니다:</p>
+	 * <ol>
+	 *   <li><b>데이터 변환:</b> KakaoPlace DTO를 PlaceEntity로 변환</li>
+	 *   <li><b>위치 검증:</b> 장소가 지정된 폴리곤 내부에 있는지 확인</li>
+	 *   <li><b>중복 검사:</b> 메모리 Set을 사용한 중복 방지</li>
+	 *   <li><b>배치 저장:</b> JPA saveAll()을 통한 효율적인 DB 저장</li>
+	 *   <li><b>예외 처리:</b> 중복 데이터 등 무결성 제약 조건 처리</li>
+	 * </ol>
+	 *
+	 * @param places 카카오 API에서 수집한 장소 목록
+	 * @param regionName 지역명
+	 * @param keyword 검색 키워드
+	 * @param regionPolygon 지역 폴리곤 (위치 검증용)
+	 * @param foundPlaceIds 중복 방지를 위한 발견된 장소 ID 집합
+	 * @return 실제로 저장된 장소 수
+	 */
 	private int savePlaces(List<KakaoPlace> places, String regionName, String keyword,
 		List<List<Double>> regionPolygon, Set<String> foundPlaceIds) {
 
 		List<PlaceEntity> placeEntities = new ArrayList<>();
+
+		// 1. 각 장소에 대해 데이터 변환 및 검증 수행
 		for (KakaoPlace place : places) {
+			// 1-1. 좌표 파싱 (카카오 API는 문자열로 반환)
 			double lat = Double.parseDouble(place.getY());
 			double lng = Double.parseDouble(place.getX());
 
-			if (!GridUtil.isPointInPolygon(lat, lng, regionPolygon)) {
-				continue;
+			// 1-2. 폴리곤 내부 위치 검증
+			if (GridUtil.isPointNotInPolygon(lat, lng, regionPolygon)) {
+				continue; // 폴리곤 외부 장소는 제외
 			}
 
-			// 메모리에서 먼저 중복 확인
+			// 1-3. 메모리 기반 중복 검사 (DB 조회보다 빠름)
 			if (foundPlaceIds.contains(place.getId())) {
 				continue; // 이미 이번 작업에서 추가된 장소이므로 건너뛰기
 			}
 
+			// 1-4. KakaoPlace → PlaceEntity 변환
 			PlaceEntity entity = PlaceEntity.builder()
 				.placeId(place.getId())
 				.placeName(place.getPlaceName())
@@ -312,22 +425,33 @@ public class CouponDataCollector {
 				.build();
 
 			placeEntities.add(entity);
-			foundPlaceIds.add(place.getId()); // Set에 새로 찾은 장소 ID 추가
+			foundPlaceIds.add(place.getId()); // 중복 방지를 위해 Set에 추가
 		}
 
+		// 2. 저장할 데이터가 없으면 0 반환
 		if (placeEntities.isEmpty()) {
 			return 0;
 		}
 
+		// 3. JPA를 통한 배치 저장 (효율적인 DB 작업)
 		try {
 			collectorPlaceRepository.saveAll(placeEntities);
 			return placeEntities.size();
 		} catch (DataIntegrityViolationException e) {
+			// 4. 중복 데이터 등 무결성 제약 조건 위반 시 로그만 남기고 계속 진행
 			log.warn("    - 데이터 저장 중 무결성 제약 조건 위반 발생 (예: 중복 데이터). 건너뜁니다.");
 			return 0;
 		}
 	}
 
+	/**
+	 * MAX_RETRIES 횟수만큼 카카오 API 호출을 재시도하고 실패하면 예외를 발생시킵니다.
+	 * @param <T> 반환 타입
+	 * @param apiCall 카카오 API 호출
+	 * @param errorMessage 에러 메시지
+	 * @return 반환 값
+	 * @throws Exception 예외
+	 */
 	private <T> T callKakaoApiWithRetry(Callable<T> apiCall, String errorMessage) throws Exception {
 		int attempts = 0;
 		long currentDelay = API_CALL_DELAY_MS;
@@ -347,9 +471,8 @@ public class CouponDataCollector {
 				} else {
 					throw e;
 				}
-			} catch (Exception e) {
-				throw e;
 			}
+			// 기타 Exception들(InterruptedException, TimeoutException 등)은 자동으로 상위로 전파됨
 		}
 		throw new RuntimeException("API 호출 최대 재시도 횟수 초과: " + errorMessage);
 	}

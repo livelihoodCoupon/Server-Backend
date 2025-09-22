@@ -356,12 +356,17 @@ public class CouponDataCollector {
 
 	/**
 	 * Redis에서 격자 상태를 조회
+	 * 
+	 * <p>지정된 좌표와 반경에 해당하는 격자의 처리 상태를 Redis 캐시에서 조회합니다.
+	 * 캐시에 데이터가 없으면 데이터베이스에서 조회하여 반환합니다.</p>
+	 * 
+	 * <p><strong>캐시 키 형식:</strong> {regionName}_{keyword}_{lat}_{lng}_{radius}</p>
 	 *
 	 * @param regionName 지역명
-	 * @param keyword 키워드
-	 * @param lat 위도
-	 * @param lng 경도
-	 * @param radius 반경
+	 * @param keyword 검색 키워드
+	 * @param lat 격자 중심 위도
+	 * @param lng 격자 중심 경도
+	 * @param radius 격자 반경 (미터)
 	 * @return 캐시된 격자 정보 (없으면 null)
 	 */
 	@Cacheable(value = "gridCache", key = "#regionName + '_' + #keyword + '_' + #lat + '_' + #lng + '_' + #radius")
@@ -374,8 +379,14 @@ public class CouponDataCollector {
 
 	/**
 	 * Redis에 격자 상태를 저장
+	 * 
+	 * <p>처리된 격자의 상태 정보를 Redis 캐시에 저장합니다.
+	 * 이후 동일한 격자에 대한 조회 시 데이터베이스 접근 없이 캐시에서 빠르게 조회할 수 있습니다.</p>
+	 * 
+	 * <p><strong>캐시 키 형식:</strong> {regionName}_{keyword}_{lat}_{lng}_{radius}</p>
 	 *
 	 * @param grid 저장할 격자 정보
+	 * @return 저장된 격자 정보
 	 */
 	@CachePut(value = "gridCache", key = "#grid.regionName + '_' + #grid.keyword + '_' + #grid.gridCenterLat + '_' + #grid.gridCenterLng + '_' + #grid.gridRadius")
 	public ScannedGrid cacheGrid(ScannedGrid grid) {

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.search.dto.SearchAutoWord;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;
@@ -27,6 +28,9 @@ import kr.co.shineware.nlp.komoran.model.Token;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
 
 @Slf4j
 @Service
@@ -115,6 +119,7 @@ public class SearchService {
 		for (Token token : tokenList) {
 			//redis 필드값 가져오기
 			String redisFieldName = isAddress(token.getMorph(), token.getPos());
+			//가져온 필드값 주소여부 체크, 주소면build에 추가
 			if (redisFieldName != null && redisFieldName.equals("address")) {
 				builder.append(" ").append(token.getMorph());
 			}
@@ -130,7 +135,39 @@ public class SearchService {
 		return list;
 	}
 
+	/**
+	 * 단어 필드조회
+	 * @param morph
+	 * @param pos
+	 * @return
+	 */
 	public String isAddress(String morph, String pos) {
 		return redisService.getWordInfo(morph);
 	}
+
+	/**
+	 * 자동완성 단어 조회
+	 * @param request
+	 * @return
+	 */
+	public List<SearchAutoWord> getAutoWord(SearchAutoWord request) {
+		List<SearchAutoWord> wordList = new ArrayList<>();
+		try (Jedis jedis = new Jedis("localhost", 6379)) {
+			String cursor = ScanParams.SCAN_POINTER_START;
+			ScanParams scanParams = new ScanParams().match("*" + request.getWord() + "*").count(100);
+
+			do {
+				ScanResult<String> result = jedis.scan(cursor, scanParams);
+				cursor = result.getCursor();
+
+				for (String key : result.getResult()) {
+					System.out.println("Matched key: " + key);
+					wordList.add(new SearchAutoWord(key));
+				}
+			} while (!cursor.equals("0"));
+		}
+		return wordList;
+
+	}
+
 }

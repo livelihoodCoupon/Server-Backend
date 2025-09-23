@@ -5,8 +5,21 @@ kakao:
   api:
     key: your-personal-kakao-api-key
 
-#spring:
+spring:
 #  datasource:
 #    url: ## If the information is different, please remove the comment and use it.
 #    username: ## If the information is different, please remove the comment and use it.
 #    password: ## If the information is different, please remove the comment and use it.
+  batch:
+    jdbc:
+      initialize-schema: always
+  jpa:
+    hibernate:
+      ddl-auto: update
+batch:
+  csv:
+    file:
+      path: data/csv
+
+cors:
+  allowed-origins: http://localhost:8081

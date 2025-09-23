@@ -36,12 +36,13 @@ out/
 ### VS Code ###
 .vscode/
 
+.DS_Store
 docs/
 logs/
 
 # Secret properties files
-application-prod.yml
 application-local.yml
+application-prod.yml
 infra/.env
 .env
 

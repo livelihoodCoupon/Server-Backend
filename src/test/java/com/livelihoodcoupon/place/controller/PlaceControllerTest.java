@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -35,38 +36,42 @@ public class PlaceControllerTest {
 	@MockitoBean
 	private PlaceService placeService;
 
-	@Test
-	@DisplayName("장소 상세 정보 조회 SUCCESS")
-	void getPlaceDetails_success() throws Exception {
-		// given: 테스트 준비 (PlaceService가 특정 DTO를 반환하도록 stub)
-		String placeId = "12345";
-		PlaceDetailResponse mockResponse = PlaceDetailResponse.builder()
-			.placeId(placeId)
-			.placeName("테스트 장소")
-			.build();
-		given(placeService.getPlaceDetails(placeId)).willReturn(mockResponse);
+	@Nested
+	@DisplayName("장소 상세 정보 조회 API")
+	class GetPlaceDetailsTest {
+		@Test
+		@DisplayName("조회 성공")
+		void getPlaceDetails_success() throws Exception {
+			// given: 테스트 준비 (PlaceService가 특정 DTO를 반환하도록 stub)
+			String placeId = "12345";
+			PlaceDetailResponse mockResponse = PlaceDetailResponse.builder()
+				.placeId(placeId)
+				.placeName("테스트 장소")
+				.build();
+			given(placeService.getPlaceDetails(placeId)).willReturn(mockResponse);
 
-		// when: 정상적인 placeId로 장소 상세 정보 조회 api 요청을 하면
-		mockMvc.perform(get("/api/places/{placeId}", placeId))
-			// then: 다음을 검증한다.
-			.andExpect(status().isOk()) // HTTP 상태가 200 OK
-			.andExpect(jsonPath("$.success").value(true)) // 응답의 success 값은 true
-			.andExpect(jsonPath("$.data.placeId").value(placeId)) // 응답의 placeId는 처음에 설정한 placeId
-			.andExpect(jsonPath("$.data.placeName").value("테스트 장소")); // 응답의 placeName은 처음에 설정한 placeName
-	}
+			// when: 정상적인 placeId로 장소 상세 정보 조회 api 요청을 하면
+			mockMvc.perform(get("/api/places/{placeId}", placeId))
+				// then: 다음을 검증한다.
+				.andExpect(status().isOk()) // HTTP 상태가 200 OK
+				.andExpect(jsonPath("$.success").value(true)) // 응답의 success 값은 true
+				.andExpect(jsonPath("$.data.placeId").value(placeId)) // 응답의 placeId는 처음에 설정한 placeId
+				.andExpect(jsonPath("$.data.placeName").value("테스트 장소")); // 응답의 placeName은 처음에 설정한 placeName
+		}
 
-	@Test
-	@DisplayName("장소 상세 정보 조회 FAIL - 존재하지 않는 ID")
-	void getPlaceDetails_fail() throws Exception {
-		// given: 테스트 준비 (존재하지 않는 placeId로 조회 요청 시 PlaceService가 예외를 던지도록 미리 stub)
-		String nonExistentPlaceId = "99999";
-		given(placeService.getPlaceDetails(nonExistentPlaceId))
-			.willThrow(new BusinessException(ErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
+		@Test
+		@DisplayName("조회 실패 - 존재하지 않는 ID")
+		void getPlaceDetails_fail() throws Exception {
+			// given: 테스트 준비 (존재하지 않는 placeId로 조회 요청 시 PlaceService가 예외를 던지도록 미리 stub)
+			String nonExistentPlaceId = "99999";
+			given(placeService.getPlaceDetails(nonExistentPlaceId))
+				.willThrow(new BusinessException(ErrorCode.NOT_FOUND, "장소를 찾을 수 없습니다."));
 
-		// when: 존재하지 않는 placeId로 장소 상세 정보 조회 api 요청을 하면
-		mockMvc.perform(get("/api/places/{placeId}", nonExistentPlaceId))
-			// then: 다음을 검증한다.
-			.andExpect(status().isNotFound()) // HTTP 상태가 404 Not Found
-			.andExpect(jsonPath("$.success").value(false));
+			// when: 존재하지 않는 placeId로 장소 상세 정보 조회 api 요청을 하면
+			mockMvc.perform(get("/api/places/{placeId}", nonExistentPlaceId))
+				// then: 다음을 검증한다.
+				.andExpect(status().isNotFound()) // HTTP 상태가 404 Not Found
+				.andExpect(jsonPath("$.success").value(false));
+		}
 	}
 }

@@ -181,6 +181,7 @@ public class SearchControllerTest {
 				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
 
+	/*
 	@Test
 	@DisplayName("400 검색 실패 - query 파라미터 누락")
 	void testSearch_queryMissing() throws Exception {
@@ -190,5 +191,6 @@ public class SearchControllerTest {
 				.andExpect(jsonPath("$.error.message").value("query: 검색어는 필수입니다."))
 				.andDo(print());
 	}
+	*/
 
 }

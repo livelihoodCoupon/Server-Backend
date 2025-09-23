@@ -2,6 +2,8 @@ package com.livelihoodcoupon.place.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 /**
  * 장소 상세 정보 API의 응답으로 사용될 DTO
@@ -9,6 +11,8 @@ import lombok.Getter;
  */
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PlaceDetailResponse {
 	private String placeId;
 	private String placeName;

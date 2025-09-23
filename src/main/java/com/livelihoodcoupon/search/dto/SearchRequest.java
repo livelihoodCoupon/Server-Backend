@@ -3,8 +3,6 @@ package com.livelihoodcoupon.search.dto;
 import java.util.Objects;
 import java.util.Optional;
 
-import jakarta.validation.constraints.NotBlank;
-
 import org.springframework.validation.annotation.Validated;
 
 import lombok.AllArgsConstructor;
@@ -28,7 +26,7 @@ public class SearchRequest {
 
 	//@Schema(description = "검색어", example = "서울시 종로구 냉면 맛집")
 	@Builder.Default
-	@NotBlank(message = "검색어는 필수입니다.")
+	// @NotBlank(message = "검색어는 필수입니다.")
 	private String query = "";
 
 	//위도
@@ -38,6 +36,12 @@ public class SearchRequest {
 	//경도
 	@Builder.Default
 	private Double lng = 126.9863813979137;
+
+	//사용자 현재 위도 (GPS 기반)
+	private Double userLat;
+
+	//사용자 현재 경도 (GPS 기반)
+	private Double userLng;
 
 	//거리 1km 기본
 	@Builder.Default

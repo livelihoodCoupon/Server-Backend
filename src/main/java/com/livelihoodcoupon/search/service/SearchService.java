@@ -13,9 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.collector.service.KakaoApiService;
-import com.livelihoodcoupon.search.dto.SearchAutoWord;
+import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;
@@ -28,9 +27,6 @@ import kr.co.shineware.nlp.komoran.model.Token;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.params.ScanParams;
-import redis.clients.jedis.resps.ScanResult;
 
 @Slf4j
 @Service
@@ -59,16 +55,43 @@ public class SearchService {
 		}
 
 		//검색 쿼리 만들기
-		Specification<PlaceEntity> specList = queryService.buildDynamicSpec(resultList, request);
+		Specification<Place> specList = queryService.buildDynamicSpec(resultList, request);
 
 		Pageable pageable = PageRequest.of(request.getPage() - 1, pageSize, Sort.unsorted());
-		Page<PlaceEntity> results = searchRepository.findAll(specList, pageable);
+		Page<Place> results = searchRepository.findAll(specList, pageable);
 
-		List<SearchResponse> dtoPage = results.stream().map(SearchResponse::fromEntity)
-			.collect(Collectors.toList());
+		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
+		double refLat = (request.getUserLat() != null) ? request.getUserLat() : request.getLat();
+		double refLng = (request.getUserLng() != null) ? request.getUserLng() : request.getLng();
+
+		List<SearchResponse> dtoPage = results.stream().map(place -> {
+			// 각 Place에 대해 거리 계산
+			double distance = calculateDistance(refLat, refLng, place.getLocation().getY(), place.getLocation().getX());
+			return SearchResponse.fromEntity(place, distance);
+		}).collect(Collectors.toList());
 
 		log.info("결과 return 총 갯수 : {}", results.getTotalElements());
 		return new PageImpl<>(dtoPage, pageable, results.getTotalElements());
+	}
+
+	/**
+	 * 두 지점 간의 거리를 계산합니다 (Haversine 공식).
+	 * PostGIS의 ST_Distance 함수와 유사한 결과를 제공합니다.
+	 * @param lat1 첫 번째 지점의 위도
+	 * @param lon1 첫 번째 지점의 경도
+	 * @param lat2 두 번째 지점의 위도
+	 * @param lon2 두 번째 지점의 경도
+	 * @return 두 지점 간의 거리 (미터 단위)
+	 */
+	private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+		final int R = 6371000; // 지구 반지름 (미터)
+		double latDistance = Math.toRadians(lat2 - lat1);
+		double lonDistance = Math.toRadians(lon2 - lon1);
+		double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+			+ Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+			* Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+		return R * c; // 미터 단위
 	}
 
 	/**
@@ -119,7 +142,6 @@ public class SearchService {
 		for (Token token : tokenList) {
 			//redis 필드값 가져오기
 			String redisFieldName = isAddress(token.getMorph(), token.getPos());
-			//가져온 필드값 주소여부 체크, 주소면build에 추가
 			if (redisFieldName != null && redisFieldName.equals("address")) {
 				builder.append(" ").append(token.getMorph());
 			}
@@ -135,39 +157,7 @@ public class SearchService {
 		return list;
 	}
 
-	/**
-	 * 단어 필드조회
-	 * @param morph
-	 * @param pos
-	 * @return
-	 */
 	public String isAddress(String morph, String pos) {
 		return redisService.getWordInfo(morph);
 	}
-
-	/**
-	 * 자동완성 단어 조회
-	 * @param request
-	 * @return
-	 */
-	public List<SearchAutoWord> getAutoWord(SearchAutoWord request) {
-		List<SearchAutoWord> wordList = new ArrayList<>();
-		try (Jedis jedis = new Jedis("localhost", 6379)) {
-			String cursor = ScanParams.SCAN_POINTER_START;
-			ScanParams scanParams = new ScanParams().match("*" + request.getWord() + "*").count(100);
-
-			do {
-				ScanResult<String> result = jedis.scan(cursor, scanParams);
-				cursor = result.getCursor();
-
-				for (String key : result.getResult()) {
-					System.out.println("Matched key: " + key);
-					wordList.add(new SearchAutoWord(key));
-				}
-			} while (!cursor.equals("0"));
-		}
-		return wordList;
-
-	}
-
 }

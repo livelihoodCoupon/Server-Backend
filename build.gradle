@@ -62,8 +62,6 @@ dependencies {
     // Redis 캐싱 의존성
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
-    //jedis
-    implementation 'redis.clients:jedis:5.1.0'
 
     //dotenv env 환경변수 등록
     implementation 'io.github.cdimascio:dotenv-java:3.0.0' // 5.x가 아닌 안정된 3.x

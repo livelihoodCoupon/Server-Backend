@@ -22,4 +22,4 @@ batch:
       path: data/csv
 
 cors:
-  allowed-origins: http://localhost:3000,http://localhost:8081
+  allowed-origins: http://localhost:8081

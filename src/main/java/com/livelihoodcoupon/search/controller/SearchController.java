@@ -1,7 +1,5 @@
 package com.livelihoodcoupon.search.controller;
 
-import java.util.List;
-
 import jakarta.validation.Valid;
 
 import org.springframework.data.domain.Page;
@@ -13,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.livelihoodcoupon.common.response.CustomApiResponse;
 import com.livelihoodcoupon.search.dto.PageResponse;
-import com.livelihoodcoupon.search.dto.SearchAutoWord;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.service.SearchService;
@@ -26,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @RequestMapping("/api")
 public class SearchController {
-	private final SearchService searchService;
+	private final SearchService search;
 
 	/**
 	 * redis 이용한 호출
@@ -41,24 +38,11 @@ public class SearchController {
 
 		int maxRecordSize = 100;
 		int pageSize = 10;
-		Page<SearchResponse> pageList = searchService.search(request, pageSize, maxRecordSize);
+		Page<SearchResponse> pageList = search.search(request, pageSize, maxRecordSize);
 		PageResponse<SearchResponse> searchResponse = new PageResponse<>(pageList, pageSize);
 
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 	}
 
-	/**
-	 *
-	 * @param searchAutoWord
-	 * @return
-	 */
-	@GetMapping("/search/autocomplete")
-	public ResponseEntity<CustomApiResponse<List<SearchAutoWord>>> searchAutoComplete(
-		@Valid @ModelAttribute SearchAutoWord searchAutoWord) {
-		System.out.println("=======자동완성 시작====>");
-		List<SearchAutoWord> SearchAutoWord = searchService.getAutoWord(searchAutoWord);
-		return ResponseEntity.ok().body(CustomApiResponse.success(SearchAutoWord));
-
-	}
 }
 

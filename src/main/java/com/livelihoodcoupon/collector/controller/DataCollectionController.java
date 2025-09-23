@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 데이터 수집 관련 API를 제공하는 컨트롤러
- * 
+ *
  * <h3>주요 기능:</h3>
  * <ul>
  *     <li><b>전국 데이터 수집:</b> 모든 지역에 대한 소비쿠폰 장소 데이터 수집</li>
@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  *       </ul>
  *     </li>
  *  </ul>
- * 
+ *
  * <h3>API 엔드포인트:</h3>
  * <ul>
  *   <li><code>GET /admin/collect/nationwide</code> - 전국 데이터 수집 시작</li>
@@ -53,7 +53,7 @@ public class DataCollectionController {
 
 	/**
 	 * 전국 데이터 수집 시작
-	 * 
+	 *
 	 * <p>모든 지역에 대한 소비쿠폰 장소 데이터를 수집합니다.
 	 * 이 작업은 비동기적으로 실행되며, 완료까지 상당한 시간이 소요될 수 있습니다.</p>
 	 *
@@ -75,10 +75,10 @@ public class DataCollectionController {
 
 	/**
 	 * 특정 지역 데이터 수집 시작
-	 * 
+	 *
 	 * <p>지정된 지역명에 해당하는 지역의 소비쿠폰 장소 데이터를 수집합니다.
 	 * 지역명은 대소문자를 구분하지 않으며, 정확한 지역명을 입력해야 합니다.</p>
-	 * 
+	 *
 	 * @param regionName 수집할 지역명 (예: "서울특별시 종로구", "경상남도 창원시 의창구")
 	 * @return 수집 시작 성공 메시지
 	 * @throws BusinessException 지역을 찾을 수 없거나 데이터 수집 중 오류 발생 시

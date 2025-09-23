@@ -204,12 +204,12 @@ public class CouponDataCollector {
 				if (cachedGrid != null) {
 					ScannedGrid.GridStatus status = cachedGrid.getStatus();
 					if (status == ScannedGrid.GridStatus.COMPLETED) {
-            // 이미 완료된 격자는 넘어감
+						// 이미 완료된 격자는 넘어감
 						log.debug("    - [캐시된 완료 격자] 건너뛰기 (좌표: {},{})", center[0], center[1]);
 						continue;
 					}
 					if (status == ScannedGrid.GridStatus.SUBDIVIDED) {
-            // 분할된 격자는 하위 탐색 목록에 추가 후 넘어감
+						// 분할된 격자는 하위 탐색 목록에 추가 후 넘어감
 						log.debug("    - [캐시된 분할 격자] 하위 탐색 목록에 추가 (좌표: {},{})", center[0], center[1]);
 						denseSubPolygons.add(GridUtil.createPolygonForCell(center[0], center[1], radius));
 						continue;

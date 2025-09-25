@@ -170,6 +170,140 @@ GET /api/places/{placeId}
 
 </br>
 
+### 2. 길찾기 API
+출발지와 도착지 사이의 경로를 조회합니다. 하이브리드 시스템으로 카카오 API(자동차)와 OSRM(도보/자전거/대중교통)을 지원합니다.
+
+```http
+GET /api/routes/search
+```
+
+**Query Parameters:**
+- `startLng` (double): 출발지 경도 (X 좌표)
+- `startLat` (double): 출발지 위도 (Y 좌표)
+- `endLng` (double): 도착지 경도 (X 좌표)
+- `endLat` (double): 도착지 위도 (Y 좌표)
+- `routeType` (string): 경로 타입
+  - `DRIVING`: 자동차 경로 (카카오 API 사용)
+  - `WALKING`: 도보 경로 (OSRM 사용)
+  - `CYCLING`: 자전거 경로 (OSRM 사용)
+  - `TRANSIT`: 대중교통 경로 (OSRM 사용)
+
+**응답 예시 (자동차 경로):**
+```json
+{
+  "coordinates": [
+    {
+      "lng": 127.02759059417166,
+      "lat": 37.497949935830974
+    },
+    {
+      "lng": 127.02766823190767,
+      "lat": 37.49806771206318
+    }
+  ],
+  "totalDistance": 420.0,
+  "totalDuration": 148.0,
+  "routeType": "DRIVING",
+  "steps": [
+    {
+      "instruction": "출발지",
+      "distance": 0.0,
+      "duration": 0.0,
+      "startLocation": {
+        "lng": 127.02759059417166,
+        "lat": 37.497949935830974
+      },
+      "endLocation": {
+        "lng": 127.02759059417166,
+        "lat": 37.497949935830974
+      }
+    },
+    {
+      "instruction": "우회전",
+      "distance": 190.0,
+      "duration": 57.0,
+      "startLocation": {
+        "lng": 127.02697034078221,
+        "lat": 37.49955771701745
+      },
+      "endLocation": {
+        "lng": 127.02697034078221,
+        "lat": 37.49955771701745
+      }
+    }
+  ]
+}
+```
+
+**응답 예시 (도보/자전거 경로):**
+```json
+{
+  "coordinates": [
+    {
+      "lng": 127.027641,
+      "lat": 37.497897
+    },
+    {
+      "lng": 127.02863,
+      "lat": 37.498918
+    }
+  ],
+  "totalDistance": 429.1,
+  "totalDuration": 61.9,
+  "routeType": "WALKING",
+  "steps": [
+    {
+      "instruction": null,
+      "distance": 8.4,
+      "duration": 5.5,
+      "startLocation": {
+        "lng": 127.027641,
+        "lat": 37.497897
+      },
+      "endLocation": {
+        "lng": 127.027641,
+        "lat": 37.497897
+      }
+    }
+  ]
+}
+```
+
+**에러 응답:**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNSUPPORTED_ROUTE_TYPE",
+    "message": "지원하지 않는 경로 타입입니다: INVALID_TYPE"
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+</br>
+
+### 3. 경로 제공자 목록 조회 API
+사용 가능한 경로 제공자 목록을 조회합니다.
+
+```http
+GET /api/routes/providers
+```
+
+**응답 예시:**
+```json
+[
+  "KakaoNavi",
+  "OSRM"
+]
+```
+
+**설명:**
+- `KakaoNavi`: 카카오내비 API를 사용하여 자동차 경로 제공
+- `OSRM`: Open Source Routing Machine을 사용하여 도보/자전거/대중교통 경로 제공
+
+</br>
+
 ## 에러 코드
 
 ### HTTP 상태 코드별 에러
@@ -192,6 +326,13 @@ GET /api/places/{placeId}
 |-----------|------|-----------|
 | `KAKAO_API_ERROR` | 카카오 API 호출 실패 | API 키 확인 또는 카카오 API 상태 확인 |
 | `API_RATE_LIMIT` | 카카오 API 호출 제한 초과 | 호출 간격 조정 (현재 30ms 지연 적용) |
+
+### OSRM API 관련 에러
+
+| 에러 유형 | 설명 | 해결 방법 |
+|-----------|------|-----------|
+| `OSRM_API_ERROR` | OSRM 서버 호출 실패 | OSRM 서버 상태 확인 또는 네트워크 연결 확인 |
+| `UNSUPPORTED_ROUTE_TYPE` | 지원하지 않는 경로 타입 | 올바른 경로 타입 사용 (DRIVING, WALKING, CYCLING, TRANSIT) |
 
 </br>
 
@@ -224,11 +365,13 @@ GET /api/places/{placeId}
 ## 관련 링크
 
 - [카카오 로컬 API 문서](https://developers.kakao.com/docs/latest/ko/local/dev-guide)
+- [카카오내비 API 문서](https://developers.kakao.com/docs/latest/ko/local/dev-guide#search-directions)
+- [OSRM 공식 문서](https://project-osrm.org/docs/v5.24.0/api/)
 - [Spring Boot 공식 문서](https://spring.io/projects/spring-boot)
 - [PostGIS 공식 문서](https://postgis.net/documentation/)
 
 ---
 
-**마지막 업데이트**: 2025-09-22  
-**문서 버전**: 1.0.0
+**마지막 업데이트**: 2025-09-25  
+**문서 버전**: 1.1.0
 

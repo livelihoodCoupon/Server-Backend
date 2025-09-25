@@ -24,6 +24,16 @@ public class GlobalExceptionHandler {
 			.body(CustomApiResponse.error(e.getErrorCode(), e.getMessage()));
 	}
 
+	// KakaoApiException 처리
+	@ExceptionHandler(KakaoApiException.class)
+	protected ResponseEntity<CustomApiResponse<?>> handleKakaoApiException(KakaoApiException e) {
+		log.error("KakaoApiException: {} (Status: {})", e.getMessage(), e.getStatusCode());
+		return ResponseEntity
+			.status(HttpStatus.SERVICE_UNAVAILABLE)
+			.body(CustomApiResponse.error(ErrorCode.KAKAO_API_ERROR, 
+				"카카오 API 서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요."));
+	}
+
 	// @Valid 또는 @Validated 에 의한 유효성 검사 실패 시 발생
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	protected ResponseEntity<CustomApiResponse<?>> handleMethodArgumentNotValidException(

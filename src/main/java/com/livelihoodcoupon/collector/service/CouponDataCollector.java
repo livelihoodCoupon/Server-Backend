@@ -21,13 +21,14 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.livelihoodcoupon.collector.dto.KakaoPlace;
-import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
 import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
+import com.livelihoodcoupon.common.dto.KakaoPlace;
+import com.livelihoodcoupon.common.dto.KakaoResponse;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
 import jakarta.annotation.PreDestroy;

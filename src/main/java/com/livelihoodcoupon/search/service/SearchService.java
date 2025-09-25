@@ -14,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
-import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;

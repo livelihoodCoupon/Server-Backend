@@ -21,7 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
-import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.dto.SearchToken;

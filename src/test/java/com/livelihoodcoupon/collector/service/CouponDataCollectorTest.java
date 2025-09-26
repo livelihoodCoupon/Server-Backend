@@ -51,13 +51,13 @@ class CouponDataCollectorTest {
 	@BeforeEach
 	void setUp() {
 		// 테스트에 사용할 기본 지역 데이터 설정
-		// 폴리곤을 2048m보다 크게 만들어, 기본 격자 크기(512m)를 사용하도록 유도
-		// 0.03도는 약 3.3km에 해당
+		// 폴리곤을 10000m보다 크게 만들어, 기본 격자 크기(512m)를 사용하도록 유도
+		// 0.1도는 약 11.1km에 해당
 		List<List<Double>> polygonRing = List.of(
 			List.of(127.0, 37.0),
-			List.of(127.03, 37.0),
-			List.of(127.03, 37.03),
-			List.of(127.0, 37.03),
+			List.of(127.1, 37.0),
+			List.of(127.1, 37.1),
+			List.of(127.0, 37.1),
 			List.of(127.0, 37.0) // Polygon은 시작점과 끝점이 같아야 합니다.
 		);
 		List<List<List<Double>>> polygon = List.of(polygonRing);

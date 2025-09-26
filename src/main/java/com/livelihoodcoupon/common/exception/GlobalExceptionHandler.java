@@ -3,6 +3,7 @@ package com.livelihoodcoupon.common.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -48,6 +49,16 @@ public class GlobalExceptionHandler {
 		return ResponseEntity
 			.status(HttpStatus.BAD_REQUEST)
 			.body(CustomApiResponse.error(ErrorCode.INVALID_INPUT_VALUE, errorMessage));
+	}
+
+	// @RequestParam 필수 파라미터 누락 시 발생
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	protected ResponseEntity<CustomApiResponse<?>> handleMissingServletRequestParameterException(
+		MissingServletRequestParameterException e) {
+		log.error("MissingServletRequestParameterException: {}", e.getMessage(), e);
+		return ResponseEntity
+			.status(HttpStatus.BAD_REQUEST)
+			.body(CustomApiResponse.error(ErrorCode.INVALID_REQUEST_PARAM, e.getMessage()));
 	}
 
 	// @RequestParam 등에서 타입 불일치 시 발생

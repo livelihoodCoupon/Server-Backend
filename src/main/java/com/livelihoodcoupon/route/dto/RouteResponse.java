@@ -2,8 +2,8 @@ package com.livelihoodcoupon.route.dto;
 
 import java.util.List;
 
-// Swagger 어노테이션 제거됨
-// import io.swagger.v3.oas.annotations.media.Schema;
+import com.livelihoodcoupon.common.dto.Coordinate;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

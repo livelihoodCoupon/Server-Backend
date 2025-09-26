@@ -7,13 +7,11 @@
 ## 시작하기
 
 ### 기본 정보
-
 - **Base URL**: `http://localhost:8080`
 - **Content-Type**: `application/json`
 - **인증**: 현재 인증 없음 (향후 JWT 토큰 기반 인증 예정)
 
 ### 응답 형식
-
 모든 API는 일관된 응답 형식을 사용합니다:
 
 ```json
@@ -25,7 +23,6 @@
 ```
 
 에러 발생 시:
-
 ```json
 {
   "success": false,
@@ -42,7 +39,6 @@
 ## 서버 내부 API (`/admin`)
 
 ### 1. 전국 데이터 수집 API
-
 전국 모든 지역의 소비쿠폰 장소 데이터를 수집합니다.
 
 ```http
@@ -50,7 +46,6 @@ GET /admin/collect/nationwide
 ```
 
 **응답 예시:**
-
 ```json
 {
   "success": true,
@@ -60,14 +55,12 @@ GET /admin/collect/nationwide
 ```
 
 **주의사항:**
-
 - 이 작업은 비동기적으로 실행되며 완료까지 상당한 시간이 소요됩니다
 - 대용량 데이터 처리로 인해 서버 리소스 사용량이 높을 수 있습니다
 
 </br>
 
 ### 2. 특정 지역 데이터 수집
-
 지정된 지역의 소비쿠폰 장소 데이터를 수집합니다.
 
 ```http
@@ -90,7 +83,6 @@ GET /admin/collect/{regionName}
 ```
 
 **에러 응답:**
-
 ```json
 {
   "success": false,
@@ -105,7 +97,6 @@ GET /admin/collect/{regionName}
 </br>
 
 ### 3. CSV로 데이터 내보내기 API
-
 수집된 모든 지역 데이터를 CSV 파일로 내보냅니다.
 
 ```http
@@ -113,7 +104,6 @@ POST /admin/exports/csv
 ```
 
 **응답 예시:**
-
 ```json
 {
   "success": true,
@@ -123,7 +113,6 @@ POST /admin/exports/csv
 ```
 
 **주의사항:**
-
 - 이 작업은 백그라운드에서 비동기적으로 실행됩니다
 - 데이터 양에 따라 처리 시간이 오래 걸릴 수 있습니다
 - 생성된 파일은 `data/csv/` 디렉토리에 저장됩니다
@@ -131,7 +120,6 @@ POST /admin/exports/csv
 </br>
 
 ### 4. 시스템 상태 체크 (Health Check) API
-
 애플리케이션의 상태를 확인합니다.
 
 ```http
@@ -139,7 +127,6 @@ GET /admin/health
 ```
 
 **응답 예시:**
-
 ```json
 {
   "success": true,
@@ -406,7 +393,7 @@ GET /api/routes/providers
 #### 5.1. API 호출 통계 조회
 
 ```http
-GET /api/routes/monitoring/stats
+GET /admin/routes/monitoring/stats
 ```
 
 **응답 예시:**
@@ -440,7 +427,7 @@ GET /api/routes/monitoring/stats
 #### 5.2. 제공자 헬스체크
 
 ```http
-GET /api/routes/monitoring/health
+GET /admin/routes/monitoring/health
 ```
 
 **응답 예시:**
@@ -466,7 +453,7 @@ GET /api/routes/monitoring/health
 #### 5.3. 성능 메트릭 조회
 
 ```http
-GET /api/routes/monitoring/performance
+GET /admin/routes/monitoring/performance
 ```
 
 **응답 예시:**
@@ -549,27 +536,23 @@ GET /api/routes/monitoring/performance
 ### API 호출 제한
 
 #### 카카오 API 제한
-
 - **일일 호출 제한**: 300,000회 (카카오 로컬 API 기준)
 - **호출 간격**: 30ms (API_CALL_DELAY_MS 설정)
 - **재시도 횟수**: 최대 5회 (429 에러 발생 시)
 - **페이지당 결과 수**: 15개 (카카오 API 최대값)
 
 #### 시스템 제한
-
 - **동시 요청 제한**: 10개 (서버 리소스에 따라 조정 가능)
 - **최대 재귀 깊이**: 9단계 (MAX_RECURSION_DEPTH 설정)
 - **최대 페이지 수**: 45페이지 (MAX_PAGE_PER_QUERY 설정)
 - **밀집도 임계값**: 15개 (DENSE_AREA_THRESHOLD 설정)
 
 ### 데이터 수집 시 고려사항
-
 1. **대용량 처리**: 전국 데이터 수집 시 수시간 소요 가능
 2. **메모리 사용량**: 대용량 데이터 처리 시 메모리 사용량 증가
 3. **디스크 공간**: CSV/GeoJSON 파일 생성 시 충분한 디스크 공간 필요
 
 ### 모니터링
-
 - **로그 확인**: `logs/application.log`에서 상세 로그 확인
 - **Docker 로그**: `docker logs livelihoodCoupon-collector-app-1`
 - **시스템 리소스**: CPU, 메모리, 디스크 사용량 모니터링

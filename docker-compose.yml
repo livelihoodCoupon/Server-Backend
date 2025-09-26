@@ -30,7 +30,64 @@ services:
     networks:
       - livelihoodCoupon-net
 
+  # OSRM 서버들
+  osrm-car:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-car-1
+    ports:
+      - "5004:5000"
+    volumes:
+      - ./infra/osrm/data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm.car
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+  osrm-foot:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-foot-1
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./infra/osrm/data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+  osrm-bike:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-bike-1
+    ports:
+      - "5002:5000"
+    volumes:
+      - ./infra/osrm/data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+  osrm-transit:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-transit-1
+    ports:
+      - "5003:5000"
+    volumes:
+      - ./infra/osrm/data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
 networks:
   livelihoodCoupon-net:
-    external: true
+    driver: bridge
 

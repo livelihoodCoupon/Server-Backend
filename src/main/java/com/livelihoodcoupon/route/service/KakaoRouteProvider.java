@@ -5,17 +5,17 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import lombok.extern.slf4j.Slf4j;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.service.KakaoApiService;
-import com.livelihoodcoupon.route.dto.Coordinate;
 import com.livelihoodcoupon.route.dto.KakaoRouteResponse;
 import com.livelihoodcoupon.route.dto.RouteRequest;
 import com.livelihoodcoupon.route.dto.RouteResponse;
 import com.livelihoodcoupon.route.dto.RouteStep;
 import com.livelihoodcoupon.route.dto.RouteType;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 카카오 길찾기 API 어댑터
@@ -35,9 +35,9 @@ public class KakaoRouteProvider implements RouteProvider {
 
 	@Override
 	public RouteResponse getRoute(RouteRequest request) {
-		log.info("카카오 API 경로 조회 시작: {} -> {}, 타입: {}", 
+		log.info("카카오 API 경로 조회 시작: {} -> {}, 타입: {}",
 			request.getStartLng(), request.getStartLat(), request.getRouteType());
-		
+
 		JsonNode jsonResponse = kakaoApiService.getDrivingRoute(
 			request.getStartLng(),
 			request.getStartLat(),

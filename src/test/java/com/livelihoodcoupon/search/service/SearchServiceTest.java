@@ -21,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
@@ -83,18 +84,32 @@ class SearchServiceTest {
 
 		// KakaoMapService mock
 		when(kakaoApiService.getCoordinatesFromAddress(anyString()))
-			.thenReturn(Mono.just(new KakaoApiService.Coordinate(37.57104033689386, 127.0019782463416)));
+			.thenReturn(Mono.just(new Coordinate(37.57104033689386, 127.0019782463416)));
 
 		// Specification mocking
 		Specification<Place> spec = mock(Specification.class);
 
 		when(queryService.buildDynamicSpec(anyList(), any())).thenReturn(spec);
-		List<Place> placeEntities = new ArrayList<>();
-		Place place = new Place();  // 가짜 Place 객체 생성
-		placeEntities.add(place);
+		List<Place> places = new ArrayList<>();
+		Place place = Place.builder() // Use Place.builder()
+			.placeId("testPlaceId")
+			.placeName("Test Place")
+			.roadAddress("Test Road Address")
+			.lotAddress("Test Lot Address")
+			.phone("123-456-7890")
+			.category("Test Category")
+			.keyword("Test Keyword")
+			.categoryGroupCode("TC")
+			.categoryGroupName("Test Category Group")
+			.placeUrl("http://test.com")
+			.location(new org.locationtech.jts.geom.GeometryFactory().createPoint(new org.locationtech.jts.geom.Coordinate(126.9863813979137, 37.560949118173454))) // Initialize location directly
+			.build();
+		place.getLocation().setSRID(4326); // Set SRID
+
+		places.add(place);
 
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
-		Page<Place> pageResult = new PageImpl<>(placeEntities);
+		Page<Place> pageResult = new PageImpl<>(places); // Changed from PlaceEntity
 		when(searchRepository.findAll(spec, pageable)).thenReturn(pageResult);
 
 		// When

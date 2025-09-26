@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.livelihoodcoupon.common.dto.Coord2RegionCodeResponse;
+import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.dto.KakaoResponse;
 import com.livelihoodcoupon.common.exception.KakaoApiException;
 
@@ -140,7 +141,7 @@ public class KakaoApiService {
 					JsonNode location = documents.get(0);
 					double x = location.get("x").asDouble(); // 경도 (longitude)
 					double y = location.get("y").asDouble(); // 위도 (latitude)
-					sink.next(new Coordinate(x, y));
+					sink.next(Coordinate.builder().lng(x).lat(y).build());
 				} else {
 					sink.error(new RuntimeException("주소에 해당하는 좌표를 찾을 수 없습니다."));
 				}
@@ -174,18 +175,4 @@ public class KakaoApiService {
 			.bodyToMono(JsonNode.class)
 			.block();
 	}
-
-	/**
-	 * 좌표 정보를 담는 내부 클래스
-	 */
-	public static class Coordinate {
-		public final double longitude;
-		public final double latitude;
-
-		public Coordinate(double longitude, double latitude) {
-			this.longitude = longitude;
-			this.latitude = latitude;
-		}
-	}
-
 }

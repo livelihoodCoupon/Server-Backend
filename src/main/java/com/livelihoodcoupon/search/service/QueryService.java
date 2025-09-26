@@ -36,7 +36,7 @@ public class QueryService {
 		return (root, query, cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 
-			//자연어검색 조건 추가 - 주소, 카테고리, 상가명
+			// 자연어검색 조건 추가 - 주소, 카테고리, 상가명
 			for (SearchToken token : resultList) {
 				String word = token.getMorph();
 				String field = (token.getFieldName() == null ? "placeName" : token.getFieldName());

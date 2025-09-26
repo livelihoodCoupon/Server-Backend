@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import org.springframework.validation.annotation.Validated;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +26,7 @@ public class SearchRequest {
 
 	//@Schema(description = "검색어", example = "서울시 종로구 냉면 맛집")
 	@Builder.Default
-	@NotBlank(message = "검색어는 필수입니다.")
+	// @NotBlank(message = "검색어는 필수입니다.")
 	private String query = "";
 
 	//위도

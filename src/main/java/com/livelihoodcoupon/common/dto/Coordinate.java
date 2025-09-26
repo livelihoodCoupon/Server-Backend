@@ -1,4 +1,4 @@
-package com.livelihoodcoupon.route.dto;
+package com.livelihoodcoupon.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,6 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coordinate {
-    private double lng; // 경도 (X 좌표)
-    private double lat; // 위도 (Y 좌표)
+	private double lng; // 경도 (X 좌표)
+	private double lat; // 위도 (Y 좌표)
 }

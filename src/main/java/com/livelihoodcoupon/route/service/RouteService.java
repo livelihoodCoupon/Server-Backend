@@ -31,8 +31,8 @@ public class RouteService {
 	private final RouteLoggingService routeLoggingService;
 
 	@Autowired
-	public RouteService(KakaoRouteProvider kakaoRouteProvider, OsrmRouteProvider osrmRouteProvider, 
-			RouteMetrics routeMetrics, RouteLoggingService routeLoggingService) {
+	public RouteService(KakaoRouteProvider kakaoRouteProvider, OsrmRouteProvider osrmRouteProvider,
+		RouteMetrics routeMetrics, RouteLoggingService routeLoggingService) {
 		this.kakaoRouteProvider = kakaoRouteProvider;
 		this.osrmRouteProvider = osrmRouteProvider;
 		this.routeMetrics = routeMetrics;
@@ -52,58 +52,61 @@ public class RouteService {
 	public RouteResponse getRoute(RouteRequest request) {
 		long startTime = System.currentTimeMillis();
 		RouteProvider primaryProvider = selectProvider(request.getRouteType());
-		
+
 		// 요청 로그 기록
 		routeLoggingService.logRouteRequest(request, primaryProvider.getProviderName());
-		
+
 		try {
 			// 재시도 로직과 함께 주요 제공자로 경로 조회
 			RouteResponse response = RetryUtil.retry(() -> primaryProvider.getRoute(request));
-			
+
 			// 성공 메트릭 및 로그 기록
 			recordMetrics(primaryProvider, true, startTime, request.getRouteType().name());
-			routeLoggingService.logRouteResponse(response, primaryProvider.getProviderName(), 
+			routeLoggingService.logRouteResponse(response, primaryProvider.getProviderName(),
 				System.currentTimeMillis() - startTime);
-			
+
 			return response;
-			
+
 		} catch (Exception e) {
 			log.warn("주요 제공자 실패, 대체 경로 시도: {} - {}", primaryProvider.getProviderName(), e.getMessage());
-			
+
 			// 주요 제공자 실패 메트릭 및 로그 기록
 			recordMetrics(primaryProvider, false, startTime, request.getRouteType().name());
-			routeLoggingService.logApiFailure(primaryProvider.getProviderName(), e.getMessage(), 
+			routeLoggingService.logApiFailure(primaryProvider.getProviderName(), e.getMessage(),
 				System.currentTimeMillis() - startTime, 3); // RetryUtil의 MAX_RETRIES
-			
+
 			// 대체 경로 제공자 시도
 			RouteProvider fallbackProvider = selectFallbackProvider(request.getRouteType());
 			if (fallbackProvider != null) {
 				try {
 					log.info("대체 제공자로 경로 조회 시도: {}", fallbackProvider.getProviderName());
 					RouteResponse response = fallbackProvider.getRoute(request);
-					
+
 					// 대체 제공자 성공 메트릭 및 로그 기록
 					recordMetrics(fallbackProvider, true, startTime, request.getRouteType().name());
 					routeMetrics.recordFallbackUsage(fallbackProvider.getProviderName());
-					routeLoggingService.logFallbackUsage(primaryProvider.getProviderName(), 
+					routeLoggingService.logFallbackUsage(primaryProvider.getProviderName(),
 						fallbackProvider.getProviderName(), e.getMessage());
-					routeLoggingService.logRouteResponse(response, fallbackProvider.getProviderName(), 
+					routeLoggingService.logRouteResponse(response, fallbackProvider.getProviderName(),
 						System.currentTimeMillis() - startTime);
-					
+
 					return response;
+
 				} catch (Exception fallbackException) {
-					log.error("대체 제공자도 실패: {} - {}", fallbackProvider.getProviderName(), fallbackException.getMessage());
-					
+					log.error("대체 제공자도 실패: {} - {}", fallbackProvider.getProviderName(),
+						fallbackException.getMessage());
+
 					// 대체 제공자 실패 메트릭 및 로그 기록
 					recordMetrics(fallbackProvider, false, startTime, request.getRouteType().name());
-					routeLoggingService.logApiFailure(fallbackProvider.getProviderName(), fallbackException.getMessage(), 
+					routeLoggingService.logApiFailure(fallbackProvider.getProviderName(),
+						fallbackException.getMessage(),
 						System.currentTimeMillis() - startTime, 0);
-					
-					throw new BusinessException(ErrorCode.ROUTE_PROVIDER_FAILED, 
+
+					throw new BusinessException(ErrorCode.ROUTE_PROVIDER_FAILED,
 						"모든 경로 제공자가 실패했습니다. 잠시 후 다시 시도해주세요.");
 				}
 			} else {
-				throw new BusinessException(ErrorCode.ROUTE_PROVIDER_FAILED, 
+				throw new BusinessException(ErrorCode.ROUTE_PROVIDER_FAILED,
 					"경로 제공자 서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.");
 			}
 		}
@@ -118,26 +121,21 @@ public class RouteService {
 	 */
 	private RouteProvider selectProvider(RouteType routeType) {
 		if (routeType == null) {
-			throw new BusinessException(ErrorCode.UNSUPPORTED_ROUTE_TYPE, 
+			throw new BusinessException(ErrorCode.UNSUPPORTED_ROUTE_TYPE,
 				"경로 타입이 지정되지 않았습니다. DRIVING, WALKING, CYCLING, TRANSIT 중 하나를 선택해주세요.");
 		}
-		
-		switch (routeType) {
-			case DRIVING:
-				return kakaoRouteProvider;
-			case WALKING:
-			case CYCLING:
-			case TRANSIT:
-				return osrmRouteProvider;
-			default:
-				throw new BusinessException(ErrorCode.UNSUPPORTED_ROUTE_TYPE, 
-					"지원하지 않는 경로 타입입니다: " + routeType + ". DRIVING, WALKING, CYCLING, TRANSIT 중 하나를 선택해주세요.");
-		}
+
+		return switch (routeType) {
+			case DRIVING -> kakaoRouteProvider;
+			case WALKING, CYCLING, TRANSIT -> osrmRouteProvider;
+			default -> throw new BusinessException(ErrorCode.UNSUPPORTED_ROUTE_TYPE,
+				"지원하지 않는 경로 타입입니다: " + routeType + ". DRIVING, WALKING, CYCLING, TRANSIT 중 하나를 선택해주세요.");
+		};
 	}
 
 	/**
 	 * 대체 경로 제공자를 선택합니다.
-	 * 
+	 *
 	 * @param routeType 경로 타입
 	 * @return 대체 제공자 (없으면 null)
 	 */
@@ -180,13 +178,13 @@ public class RouteService {
 	 */
 	private void recordMetrics(RouteProvider provider, boolean success, long startTime, String routeType) {
 		long duration = System.currentTimeMillis() - startTime;
-		
+
 		if (provider instanceof KakaoRouteProvider) {
 			routeMetrics.recordKakaoApiCall(success, duration);
 		} else if (provider instanceof OsrmRouteProvider) {
 			routeMetrics.recordOsrmApiCall(success, duration);
 		}
-		
+
 		// 경로 타입별 메트릭 기록
 		routeMetrics.recordRouteTypeMetrics(routeType, success, duration);
 	}

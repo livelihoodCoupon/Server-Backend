@@ -42,7 +42,7 @@ public class CouponDataCollector {
 	private static final Logger log = LoggerFactory.getLogger(CouponDataCollector.class);
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
 	private static final int SMALL_REGION_GRID_RADIUS_METERS = 256;
-	private static final int SMALL_REGION_THRESHOLD_METERS = 10000; // 10km
+	private static final int SMALL_REGION_THRESHOLD_METERS = 7500; // 7.5km
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;
 	private static final int MAX_RECURSION_DEPTH = 9;

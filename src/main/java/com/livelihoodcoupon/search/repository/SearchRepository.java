@@ -4,8 +4,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.place.entity.Place;
 
 @Repository
-public interface SearchRepository extends JpaRepository<PlaceEntity, Long>, JpaSpecificationExecutor<PlaceEntity> {
+public interface SearchRepository
+	extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> { // Changed from PlaceEntity
 }

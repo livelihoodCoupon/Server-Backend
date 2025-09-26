@@ -6,7 +6,7 @@ services:
     image: osrm/osrm-backend:latest
     container_name: livelihoodCoupon-osrm-car-1
     ports:
-      - "5000:5000"
+      - "5004:5000"
     volumes:
       - ./data:/data
     command: osrm-routed --algorithm mld /data/south-korea-latest.osrm.car

@@ -20,7 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
@@ -86,15 +86,15 @@ class SearchServiceTest {
 			.thenReturn(Mono.just(new KakaoApiService.Coordinate(37.57104033689386, 127.0019782463416)));
 
 		// Specification mocking
-		Specification<PlaceEntity> spec = mock(Specification.class);
+		Specification<Place> spec = mock(Specification.class);
 
 		when(queryService.buildDynamicSpec(anyList(), any())).thenReturn(spec);
-		List<PlaceEntity> placeEntities = new ArrayList<>();
-		PlaceEntity place = new PlaceEntity();  // 가짜 PlaceEntity 객체 생성
+		List<Place> placeEntities = new ArrayList<>();
+		Place place = new Place();  // 가짜 Place 객체 생성
 		placeEntities.add(place);
 
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
-		Page<PlaceEntity> pageResult = new PageImpl<>(placeEntities);
+		Page<Place> pageResult = new PageImpl<>(placeEntities);
 		when(searchRepository.findAll(spec, pageable)).thenReturn(pageResult);
 
 		// When

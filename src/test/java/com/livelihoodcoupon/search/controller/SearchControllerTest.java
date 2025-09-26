@@ -79,7 +79,7 @@ public class SearchControllerTest {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/search")
-				.param("query", query)
+				.param("keyword", query)
 		);
 
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
@@ -126,7 +126,7 @@ public class SearchControllerTest {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/search")
-				.param("query", query)
+				.param("keyword", query)
 		);
 
 		//then
@@ -164,7 +164,7 @@ public class SearchControllerTest {
 		//when
 		ResultActions resultActions = mockMvc.perform(
 			get("/api/search")
-				.param("query", query)
+				.param("keyword", query)
 		);
 		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
 		System.out.println("API 응답 내용: " + responseContent);

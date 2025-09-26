@@ -32,7 +32,7 @@ spring:
 osrm:
   # OSRM 서버별 설정
   servers:
-    car: ${OSRM_CAR_URL:http://localhost:5000}
+    car: ${OSRM_CAR_URL:http://localhost:5004}
     foot: ${OSRM_FOOT_URL:http://localhost:5001}
     bike: ${OSRM_BIKE_URL:http://localhost:5002}
     transit: ${OSRM_TRANSIT_URL:http://localhost:5003}

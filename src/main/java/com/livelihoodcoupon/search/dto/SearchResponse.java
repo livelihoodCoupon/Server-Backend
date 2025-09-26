@@ -1,6 +1,6 @@
 package com.livelihoodcoupon.search.dto;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.place.entity.Place;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,20 +41,22 @@ public class SearchResponse {
 	//@Schema(description = "홈페이지주소", example = "http://www.naver.com")
 	private String placeUrl;
 
-	public static SearchResponse fromEntity(PlaceEntity placeEntity) {
+	//@Schema(description = "내 위치로부터의 거리 (미터 단위)", example = "123.45")
+	private Double distance;
+
+	public static SearchResponse fromEntity(Place place, Double distance) { // Changed from PlaceEntity
 
 		return new SearchResponse(
-			placeEntity.getPlaceId(),
-			placeEntity.getPlaceName(),
-			placeEntity.getRoadAddress(),
-			placeEntity.getLotAddress(),
-			placeEntity.getLat(),
-			placeEntity.getLng(),
-			placeEntity.getPhone(),
-			placeEntity.getCategoryGroupName(),
-			placeEntity.getPlaceUrl()
+			place.getPlaceId(),
+			place.getPlaceName(),
+			place.getRoadAddress(),
+			place.getLotAddress(),
+			place.getLocation().getY(), // Changed to use Place.getLocation()
+			place.getLocation().getX(), // Changed to use Place.getLocation()
+			place.getPhone(),
+			place.getCategoryGroupName(),
+			place.getPlaceUrl(),
+			distance
 		);
 	}
-
 }
-

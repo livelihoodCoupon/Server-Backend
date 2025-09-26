@@ -102,6 +102,7 @@ public class CouponDataCollector {
 	public void collectForSingleRegion(RegionData region) {
 		long startTime = System.currentTimeMillis();
 
+		// 1. 지역 폴리곤 유효성 검사
 		List<List<List<List<Double>>>> multiPolygon = region.getPolygons();
 		if (multiPolygon == null || multiPolygon.isEmpty()) {
 			log.warn("    - 경고: [ {} ] 지역에 폴리곤(polygon)이 정의되지 않아 건너뜁니다.", region.getName());

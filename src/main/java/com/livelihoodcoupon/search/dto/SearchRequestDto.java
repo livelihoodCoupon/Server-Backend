@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Validated
 @NoArgsConstructor
 @AllArgsConstructor
-public class SearchDTO {
+public class SearchRequestDto {
 
 	//@Schema(description = "페이지번호", example = "1")
 	@Builder.Default
@@ -45,7 +45,7 @@ public class SearchDTO {
 
 	//거리 1km 기본
 	@Builder.Default
-	private Double radius = 1.0;
+	private Double radius = 1000.0;
 
 	//정렬기준
 	@Builder.Default

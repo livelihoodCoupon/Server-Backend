@@ -1,6 +1,6 @@
 package com.livelihoodcoupon.search.dto;
 
-import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.search.entity.PlaceDocument;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class SearchResponseDto {
+public class PlaceSearchResponseDto {
 
 	//@Schema(description = "장소번호", example = "324234")
 	private String placeId; // Kakao's unique place ID
@@ -30,7 +30,7 @@ public class SearchResponseDto {
 	private Double lat;
 
 	//@Schema(description = "경도", example = "126.974898")
-	private Double lng;
+	private Double lon;
 
 	//@Schema(description = "연락처", example = "070-22-3322")
 	private String phone;
@@ -44,15 +44,15 @@ public class SearchResponseDto {
 	//@Schema(description = "내 위치로부터의 거리 (미터 단위)", example = "123.45")
 	private Double distance;
 
-	public static SearchResponseDto fromEntity(Place place, Double distance) { // Changed from PlaceEntity
+	public static PlaceSearchResponseDto fromEntity(PlaceDocument place, Double distance) { // Changed from PlaceEntity
 
-		return new SearchResponseDto(
+		return new PlaceSearchResponseDto(
 			place.getPlaceId(),
 			place.getPlaceName(),
 			place.getRoadAddress(),
 			place.getLotAddress(),
-			place.getLocation().getY(), // Changed to use Place.getLocation()
-			place.getLocation().getX(), // Changed to use Place.getLocation()
+			place.getLocation().getLat(), // Changed to use Place.getLocation()
+			place.getLocation().getLon(), // Changed to use Place.getLocation()
 			place.getPhone(),
 			place.getCategoryGroupName(),
 			place.getPlaceUrl(),

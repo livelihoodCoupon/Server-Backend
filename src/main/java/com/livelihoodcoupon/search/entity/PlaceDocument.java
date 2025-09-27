@@ -1,20 +1,23 @@
 package com.livelihoodcoupon.search.entity;
 
-import java.util.Map;
+import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * 엘라스틱서치에서 사용하는 index
  * 데이터베이스의 'place' 테이블과 직접 매핑됨 (테이블명 역시 추후 논의 후 반영 필요)
  */
 @Data
-@Builder
-@Document(indexName = "user")
-public class PlacesDocument {
+@NoArgsConstructor
+//@Builder
+public class PlaceDocument {
+
+	@JsonProperty("id")
+	private int id;
 
 	@JsonProperty("place_id")
 	private String placeId;
@@ -37,6 +40,9 @@ public class PlacesDocument {
 	@JsonProperty("category")
 	private String category;
 
+	@JsonProperty("distance")
+	private Float distance;
+
 	@JsonProperty("keyword")
 	private String keyword;
 
@@ -51,5 +57,12 @@ public class PlacesDocument {
 
 	// Elasticsearch의 geo_point 타입에 맞게 lat/lon 구조로 선언
 	@JsonProperty("location")
-	private Map<String, Double> location;  // { "lat": ..., "lon": ... }
+	private GeoPoint location;
+
+	@JsonProperty("created_at")
+	private OffsetDateTime created_at;
+
+	@JsonProperty("updated_at")
+	private OffsetDateTime updated_at;
+
 }

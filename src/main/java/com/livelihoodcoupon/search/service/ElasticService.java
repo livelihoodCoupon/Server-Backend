@@ -1,6 +1,8 @@
 package com.livelihoodcoupon.search.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -8,15 +10,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.livelihoodcoupon.place.entity.Place;
-import com.livelihoodcoupon.search.dto.SearchRequestDTO;
-import com.livelihoodcoupon.search.dto.SearchResponseDTO;
+import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.search.dto.NoriToken;
+import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
+import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchToken;
+import com.livelihoodcoupon.search.entity.PlaceDocument;
 
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import kr.co.shineware.nlp.komoran.constant.DEFAULT_MODEL;
+import kr.co.shineware.nlp.komoran.core.Komoran;
+import kr.co.shineware.nlp.komoran.model.KomoranResult;
+import kr.co.shineware.nlp.komoran.model.Token;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -25,71 +35,188 @@ public class ElasticService {
 	private static String searchNewAddress;
 	private final ElasticPlaceService elasticPlaceService;
 	private final SearchService searchService;
+	private final KakaoApiService kakaoApiService;
+	private final RedisService redisService;
+	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
+	private final NoriAnalyzerTest noriAnalyzerTest;
 
-	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService) {
+	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
+		KakaoApiService kakaoApiService, RedisService redisService, NoriAnalyzerTest noriAnalyzerTest) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
+		this.kakaoApiService = kakaoApiService;
+		this.redisService = redisService;
+		this.noriAnalyzerTest = noriAnalyzerTest;
 	}
 
-	public Page<SearchResponseDTO> elasticSearch(SearchRequestDTO dto, int pageSize, int maxRecordSize) throws
+	/**
+	 * 엘라스틱 서치
+	 * @param dto
+	 * @param pageSize
+	 * @param maxRecordSize
+	 * @return
+	 * @throws IOException
+	 */
+	public Page<PlaceSearchResponseDto> elasticSearch(SearchRequestDto dto, int pageSize, int maxRecordSize) throws
 		IOException {
 		String query = dto.getQuery();
 
-		//자연어 형태소 분리
-		List<SearchToken> resultList = searchService.analysisChat(query);
+		//코모란 자연어 형태소 분리
+		//List<SearchToken> resultList = analysisChat(query);
+		//nori 단어분리
+		List<NoriToken> resultNori = noriAnalyzerTest.analyzeText(query);
+		//분리된 단어들에서 주소가져오기
+		String searchFullAddress = noriAnalyzerTest.getAddress(resultNori);
 
 		//검색어에 주소가 있을 경우 새로운 위치 가져오기
-		log.info("현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
-		if (!searchNewAddress.isEmpty()) {
-			SearchRequestDTO result
-				= searchService.handleAddressPosition(searchNewAddress, dto).block().getBody();
-			log.info("재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
+/*
+		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
+		if (searchNewAddress != null && !searchNewAddress.isEmpty()) {
+			SearchRequestDto result = handleAddressPosition(searchNewAddress, dto).block().getBody();
+			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
 		}
-
-		//검색 쿼리 만들기
-		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
-		SearchResponse<Place> response = elasticPlaceService.searchPlace(resultList, dto, maxRecordSize, pageable);
+*/
+		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
+		if (searchFullAddress != null && !searchFullAddress.isEmpty()) {
+			SearchRequestDto result = handleAddressPosition(searchFullAddress, dto).block().getBody();
+			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
+		}
 
 		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
 		double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
 		double refLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
 
-		List<SearchResponseDTO> dtoPage = response.hits().hits()
+		//검색하기
+		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
+		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultNori, dto, maxRecordSize,
+			pageable);
+		//위치계산하기
+		List<PlaceSearchResponseDto> dtoPage = response.hits().hits()
 			.stream()
 			.map(hit -> hit.source())
 			.map(place -> {
-				//SearchResponseDTO.fromEntity(place, dto.getRadius());
-
 				// 각 Place에 대해 거리 계산
-				double distance = searchService.calculateDistance(refLat, refLng,
-					place.getLocation().getY(), place.getLocation().getX());
-				return SearchResponseDTO.fromEntity(place, distance);
-
-			}) // 또는 dto -> mapper.toEntity(dto)
-			.collect(Collectors.toList());
+				return toSearchPositionDto(place, refLat, refLng);
+			}).collect(Collectors.toList());
 
 		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0;
 		//int totalPages = (int)Math.ceil((double)totalHits / pageSize);
-
+		log.info("엘라스틱 서치 결과 return 총 갯수 : {}", totalHits);
 		return new PageImpl<>(dtoPage, pageable, totalHits);
 
 		////////////////////////////////////
-/*		//엘라스틱 서치 추가
-		//Page<Place> results = searchRepository.findAll(specList, pageable);
-
-		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
-		double refLat = (request.getUserLat() != null) ? request.getUserLat() : request.getLat();
-		double refLng = (request.getUserLng() != null) ? request.getUserLng() : request.getLng();
-
-		List<SearchResponseDTO> dtoPage = results.stream().map(place -> {
-			// 각 Place에 대해 거리 계산
-			double distance = calculateDistance(refLat, refLng,
-				place.getLocation().getY(), place.getLocation().getX());
-			return SearchResponseDTO.fromEntity(place, distance);
-		}).collect(Collectors.toList());
-
-		log.info("결과 return 총 갯수 : {}", results.getTotalElements());
-		return new PageImpl<>(dtoPage, pageable, results.getTotalElements());*/
-
 	}
+
+	/**
+	 * lsit에 현재위치부터 목적지까지 거리계산해서 넣기
+	 * @param doc
+	 * @param refLat
+	 * @param refLng
+	 * @return
+	 */
+	public PlaceSearchResponseDto toSearchPositionDto(PlaceDocument doc, double refLat, double refLng) {
+		double distance = searchService.calculateDistance(refLat, refLng,
+			doc.getLocation().getLat(), doc.getLocation().getLon());
+		return PlaceSearchResponseDto.fromEntity(doc, distance);
+	}
+
+	/**
+	 * 주소로 위도, 경도 재탐색
+	 * @param searchNewAddress
+	 * @param request
+	 * @return
+	 */
+	public Mono<ResponseEntity<SearchRequestDto>> handleAddressPosition(String searchNewAddress,
+		SearchRequestDto request) {
+		return kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
+			.defaultIfEmpty(new KakaoApiService.Coordinate(0, 0))
+			.flatMap(coordinate -> {
+				// request에 좌표 세팅
+				request.setLat(coordinate.latitude);
+				request.setLng(coordinate.longitude);
+				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress, coordinate.latitude,
+					coordinate.longitude);
+				return Mono.just(request);
+			})
+			.map(r -> ResponseEntity.ok(r))
+			.onErrorResume(e -> {
+				log.error("엘라스틱 서치 Mono 좌표 검색 중 오류 발생", e);
+				return Mono.just(ResponseEntity.ok(request));
+			});
+	}
+
+	/**
+	 * 단어 형태로 분리
+	 * 예) 서울시 강남구 카페 맛집
+	 * BeginIndex : 시작위치
+	 * EndIndex : 끝위치 :
+	 * mar ph : 검색단어
+	 * Pos : 단어구분
+	 * - 서울시 - NNP	고유 명사 (지명)
+	 * - 강남구 - NNP	고유 명사 (지명)
+	 * - 카페 - NNG	일반 명사 (장소/시설)
+	 * - 맛집 - NNG	일반 명사 (장소/음식점)
+	 **/
+	public List<SearchToken> analysisChat(String keyword) {
+		log.info("analysisChat 호출 시작222");
+
+		//단어 형태 자동 분리
+		KomoranResult analyzeResultList = komoran.analyze(keyword);
+
+		//analyzeResultList try-can처리
+		List<Token> tokenList;
+		try {
+			// 분리된 문자열 token list 생성
+			tokenList = analyzeResultList.getTokenList();
+		} catch (NullPointerException e) {
+			log.error("형태소 분석 결과 추출 중 오류 발생 - keyword: {}", keyword);
+			// 문제를 알리고 빈 리스트로 대체
+			return Collections.emptyList();
+		}
+		List<SearchToken> list = new ArrayList<>();
+		StringBuilder builder = new StringBuilder();
+
+		//분리된 문자열 token list 생성
+		for (Token token : tokenList) {
+			//token 공백여부 체크
+			if (token == null) {
+				log.warn("token 형태소 정보가 비어있습니다: {}", token);
+				continue;
+			}
+
+			// 형태소 문자열 체크
+			if (token.getMorph() == null || token.getMorph().isBlank()) {
+				log.warn("getMorph 형태소 정보가 비어있습니다");
+				continue;
+			}
+
+			//redis 필드값 가져오기
+			String redisFieldName = isAddress(token.getMorph(), token.getPos());
+			if (redisFieldName != null && redisFieldName.equals("address")) {
+				builder.append(" ").append(token.getMorph());
+			}
+
+			//Token을 SearchToken으로 통합하기
+			SearchToken searchToken = new SearchToken(token);
+			searchToken.setFieldName(redisFieldName);
+
+			list.add(searchToken);
+
+			log.info("형태소 분리 결과 {}, {} {}, {} ", token.getBeginIndex(), token.getEndIndex(), token.getMorph(),
+				token.getPos());
+		}
+		searchNewAddress = builder.toString();
+		return list;
+	}
+
+	/**
+	 * 단어가 주소여부 체크
+	 * @param morph
+	 * @param pos
+	 * @return
+	 */
+	public String isAddress(String morph, String pos) {
+		return redisService.getWordInfo(morph);
+	}
+
 }

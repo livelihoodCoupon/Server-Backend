@@ -11,7 +11,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.place.entity.Place;
-import com.livelihoodcoupon.search.dto.SearchRequest;
+import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchToken;
 
 import lombok.AllArgsConstructor;
@@ -28,7 +28,7 @@ public class QueryService {
 	 * 검색어 쿼리 만들기
 	 **/
 	public Specification<Place> buildDynamicSpec(List<SearchToken> resultList,
-		SearchRequest request) { // Changed from PlaceEntity
+		SearchRequestDto request) { // Changed from PlaceEntity
 
 		double lat = request.getLat();
 		double lng = request.getLng();
@@ -64,6 +64,8 @@ public class QueryService {
 			);
 
 			// PostGIS 공간 필터링 (반경 내)
+			log.info("PostGIS 공간 필터링 : searchPoint:{}, radius: {}", searchPoint, radius);
+
 			predicates.add(cb.isTrue(cb.function("ST_DWithin", Boolean.class,
 				root.get("location"), // Place의 location 필드 (geography 타입)
 				searchPoint,

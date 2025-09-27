@@ -23,8 +23,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
-import com.livelihoodcoupon.search.dto.SearchRequest;
-import com.livelihoodcoupon.search.dto.SearchResponse;
+import com.livelihoodcoupon.search.dto.SearchRequestDto;
+import com.livelihoodcoupon.search.dto.SearchResponseDto;
 import com.livelihoodcoupon.search.repository.SearchRepository;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
@@ -56,24 +56,24 @@ public class SearchControllerTest {
 
 		//given
 		String query = "음식점";
-		SearchRequest req = new SearchRequest();
+		SearchRequestDto req = new SearchRequestDto();
 		req.setQuery(query);
 		req.initDefaults();
 
-		SearchResponse place1 = SearchResponse.builder()
+		SearchResponseDto place1 = SearchResponseDto.builder()
 			.placeId("650685922")    //.category("음식점 > 일식 > 일식집")
 			.placeName("타마고").roadAddress("서울 중구 을지로 지하 88")
 			.lotAddress("서울 중구 을지로2가 149-10").lat(37.56610453).lng(126.9862248)
 			.phone("070-8805-0922").categoryGroupName("음식점").build();
 
-		SearchResponse place2 = SearchResponse.builder()
+		SearchResponseDto place2 = SearchResponseDto.builder()
 			.placeId("853125114")    //.category("음식점 > 카페 > 테마카페 > 디저트카페")
 			.placeName("짜드라").roadAddress("서울 중구 을지로 지하 88")
 			.lotAddress("서울 중구 을지로2가 149-10").lat(37.56614425).lng(126.9868644)
 			.phone("010-8715-6111").categoryGroupName("카페").build();
-		List<SearchResponse> searchResponses = List.of(place1, place2);
+		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
-		Page<SearchResponse> pageList = new PageImpl<>(searchResponses, pageable, 2);
+		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
 		given(searchService.search(req, 10, 100)).willReturn(pageList);
 
 		//when
@@ -103,24 +103,24 @@ public class SearchControllerTest {
 
 		//given
 		String query = "서울시 종로구";
-		SearchRequest req = new SearchRequest();
+		SearchRequestDto req = new SearchRequestDto();
 		req.setQuery(query);
 		req.initDefaults();
 
-		SearchResponse place1 = SearchResponse.builder()
+		SearchResponseDto place1 = SearchResponseDto.builder()
 			.placeId("22318916")    //.category("음식점 > 일식 > 참치회")
 			.placeName("종로참치").roadAddress("서울 종로구 청계천로 97")
 			.lotAddress("서울 종로구 관철동 37-2").lat(37.56836267).lng(126.9884894)
 			.phone("02-2265-3737").categoryGroupName("음식점").build();
 
-		SearchResponse place2 = SearchResponse.builder()
+		SearchResponseDto place2 = SearchResponseDto.builder()
 			.placeId("161332969")    //.category("음식점 > 술집 > 호프,요리주점")
 			.placeName("청계뷰호프").roadAddress("서울 종로구 청계천로 97")
 			.lotAddress("서울 종로구 관철동 37-2").lat(37.56840862).lng(126.9884419)
 			.phone("010-8715-6111").categoryGroupName("음식점").build();
-		List<SearchResponse> searchResponses = List.of(place1, place2);
+		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
-		Page<SearchResponse> pageList = new PageImpl<>(searchResponses, pageable, 2);
+		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
 		given(searchService.search(req, 10, 100)).willReturn(pageList);
 
 		//when
@@ -147,18 +147,18 @@ public class SearchControllerTest {
 
 		//given
 		String query = "서울시 종로구 참치";
-		SearchRequest req = new SearchRequest();
+		SearchRequestDto req = new SearchRequestDto();
 		req.setQuery(query);
 		req.initDefaults();
 
-		SearchResponse place1 = SearchResponse.builder()
+		SearchResponseDto place1 = SearchResponseDto.builder()
 			.placeId("22318916")    //.category("음식점 > 일식 > 참치회")
 			.placeName("종로참치").roadAddress("서울 종로구 청계천로 97")
 			.lotAddress("서울 종로구 관철동 37-2").lat(37.56836267).lng(126.9884894)
 			.phone("02-2265-3737").categoryGroupName("음식점").build();
-		List<SearchResponse> searchResponses = List.of(place1);
+		List<SearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
-		Page<SearchResponse> pageList = new PageImpl<>(searchResponses, pageable, 2);
+		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
 		given(searchService.search(req, 10, 100)).willReturn(pageList);
 
 		//when

@@ -1,6 +1,20 @@
 package com.livelihoodcoupon.search.service;
 
-public class DictLoader {
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+public class AddressDictLoader {
 
 	private final Set<String> addressSet = new HashSet<>();
 
@@ -10,6 +24,7 @@ public class DictLoader {
 
 	private void loadAddressDict() {
 		try {
+			log.info("AddressDictLoader dict/address_dict.txt start");
 			ClassPathResource resource = new ClassPathResource("dict/address_dict.txt");
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
 				String line;
@@ -24,6 +39,7 @@ public class DictLoader {
 	}
 
 	public boolean contains(String token) {
+		log.info("AddressDictLoader categorySet.contains(token)=" + addressSet.contains(token));
 		return addressSet.contains(token);
 	}
 

@@ -18,7 +18,7 @@ import lombok.NoArgsConstructor;
 @Validated
 @NoArgsConstructor
 @AllArgsConstructor
-public class SearchRequestDto {
+public class PlaceIndexRequestDto {
 
 	//@Schema(description = "페이지번호", example = "1")
 	@Builder.Default

@@ -8,37 +8,44 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
 
-public class AddressDictLoader {
+import lombok.extern.slf4j.Slf4j;
 
-	private final Set<String> addressSet = new HashSet<>();
+@Slf4j
+@Component
+public class CategoryDictLoader {
 
-	public AddressDictLoader() {
-		loadAddressDict();
+	private final Set<String> categorySet = new HashSet<>();
+
+	public CategoryDictLoader() {
+		loadCategoryDict();
 	}
 
-	private void loadAddressDict() {
+	private void loadCategoryDict() {
 		try {
-			ClassPathResource resource = new ClassPathResource("dict/address_dict.txt");
+			log.info("CategoryDictLoader dict/category_dict.txt start");
+			ClassPathResource resource = new ClassPathResource("dict/category_dict.txt");
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
 					String[] tokens = line.trim().split("\\s+");
-					Collections.addAll(addressSet, tokens);
+					Collections.addAll(categorySet, tokens);
 				}
 			}
 		} catch (IOException e) {
-			throw new RuntimeException("address_dict.txt 파일을 읽는 중 오류 발생", e);
+			throw new RuntimeException("category_dict.txt 파일을 읽는 중 오류 발생", e);
 		}
 	}
 
 	public boolean contains(String token) {
-		return addressSet.contains(token);
+		log.info("CategoryDictLoader categorySet.contains(token)=" + categorySet.contains(token));
+		return categorySet.contains(token);
 	}
 
 	// 테스트용 메서드
 	public void printAll() {
 		System.out.println("=== 주소 사전 ===");
-		addressSet.forEach(System.out::println);
+		categorySet.forEach(System.out::println);
 	}
 }

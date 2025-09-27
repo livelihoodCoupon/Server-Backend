@@ -64,6 +64,11 @@ public class RedisService {
 	 */
 	public String getWordInfo(String word) {
 		String key = searchPrefix + word;
-		return hashOps.entries(key).get("field");  // 해당 단어의 모든 필드 값 반환
+		String value = hashOps.entries(key).get("field");
+		if (value == null || value.isEmpty() || value.trim().isEmpty()) {
+			return "";
+		} else {
+			return hashOps.entries(key).get("field");  // 해당 단어의 모든 필드 값 반환
+		}
 	}
 }

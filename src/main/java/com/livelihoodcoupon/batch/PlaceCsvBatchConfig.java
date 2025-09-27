@@ -2,14 +2,15 @@ package com.livelihoodcoupon.batch;
 
 import java.io.IOException;
 
-import jakarta.persistence.EntityManagerFactory;
-
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
@@ -34,6 +35,7 @@ import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.place.repository.PlaceRepository;
 import com.livelihoodcoupon.place.service.PlaceIdCacheService;
 
+import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -64,6 +66,20 @@ public class PlaceCsvBatchConfig {
 			.reader(multiResourceItemReader(null)) // 초기값은 null, 실제 값은 application.yml에서 로드
 			.processor(placeCsvProcessor())
 			.writer(placeCsvWriter())
+			.listener(new StepExecutionListener() {
+				@Override
+				public void beforeStep(StepExecution stepExecution) {
+					// 배치 시작 시 배치 모드 활성화
+					placeIdCacheService.enableBatchMode();
+				}
+
+				@Override
+				public ExitStatus afterStep(StepExecution stepExecution) {
+					// 배치 완료 시 배치 모드 비활성화
+					placeIdCacheService.disableBatchMode();
+					return stepExecution.getExitStatus();
+				}
+			})
 			.build();
 	}
 

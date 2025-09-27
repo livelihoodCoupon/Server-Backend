@@ -41,6 +41,8 @@ public class CouponDataCollector {
 	public static final String DEFAULT_KEYWORD = "소비쿠폰";
 	private static final Logger log = LoggerFactory.getLogger(CouponDataCollector.class);
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
+	private static final int SMALL_REGION_GRID_RADIUS_METERS = 256;
+	private static final int SMALL_REGION_THRESHOLD_METERS = 7500; // 7.5km
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;
 	private static final int MAX_RECURSION_DEPTH = 9;
@@ -101,8 +103,8 @@ public class CouponDataCollector {
 		long startTime = System.currentTimeMillis();
 
 		// 1. 지역 폴리곤 유효성 검사
-		List<List<Double>> initialPolygon = region.getPolygon();
-		if (initialPolygon == null || initialPolygon.isEmpty()) {
+		List<List<List<List<Double>>>> multiPolygon = region.getPolygons();
+		if (multiPolygon == null || multiPolygon.isEmpty()) {
 			log.warn("    - 경고: [ {} ] 지역에 폴리곤(polygon)이 정의되지 않아 건너뜁니다.", region.getName());
 			return;
 		}
@@ -113,9 +115,51 @@ public class CouponDataCollector {
 		Set<String> foundPlaceIds = ConcurrentHashMap.newKeySet();
 
 		// 2. 초기 격자 생성 및 밀집도 검사
+		List<List<List<Double>>> initialRings = new ArrayList<>();
+		for (List<List<List<Double>>> polygon : multiPolygon) {
+			if (polygon != null && !polygon.isEmpty()) {
+				initialRings.add(polygon.get(0));
+			}
+		}
+
+		if (initialRings.isEmpty()) {
+			log.warn("    - 경고: [ {} ] 지역에 유효한 폴리곤 데이터가 없습니다.", region.getName());
+			return;
+		}
+
+		for (List<List<Double>> ring : initialRings) {
+			GridUtil.BoundingBox bbox = GridUtil.getBoundingBoxForPolygon(ring);
+			double bboxHeight = (bbox.getLatEnd() - bbox.getLatStart()) * 111000;
+			double bboxWidth =
+				(bbox.getLngEnd() - bbox.getLngStart()) * 111000 * Math.cos(Math.toRadians(bbox.getLatStart()));
+
+			int initialRadius = (Math.max(bboxWidth, bboxHeight) < SMALL_REGION_THRESHOLD_METERS)
+				? SMALL_REGION_GRID_RADIUS_METERS
+				: INITIAL_GRID_RADIUS_METERS;
+
+			if (initialRadius != INITIAL_GRID_RADIUS_METERS) {
+				log.info("    - [ {} ] 지역의 일부가 작아, 격자 크기를 {}m로 조정합니다.", region.getName(), initialRadius);
+			}
+
+			scanAndCollectForPolygon(ring, initialRadius, foundPlaceIds, region.getName());
+		}
+
+		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 및 DB 저장 완료.", region.getName(), DEFAULT_KEYWORD);
+
+		log.info(">>> [ {} ] 지역 파일 생성을 시작합니다...", region.getName());
+		csvExportService.exportSingleRegionToCsv(region.getName(), DEFAULT_KEYWORD);
+		geoJsonExportService.exportSingleRegionToGeoJson(region.getName(), DEFAULT_KEYWORD);
+		log.info(">>> [ {} ] 지역 파일 생성을 완료했습니다.", region.getName());
+
+		long endTime = System.currentTimeMillis();
+		log.info(">>> [ {} ] 지역 수집 완료. 총 소요 시간: {}ms", region.getName(), (endTime - startTime));
+	}
+
+	protected void scanAndCollectForPolygon(List<List<Double>> polygon, int initialRadius, Set<String> foundPlaceIds,
+		String regionName) {
 		List<List<List<Double>>> currentLevelPolygons = new ArrayList<>();
-		currentLevelPolygons.add(initialPolygon);
-		int currentRadius = INITIAL_GRID_RADIUS_METERS;
+		currentLevelPolygons.add(polygon);
+		int currentRadius = initialRadius;
 		int depth = 0;
 
 		// 3. 밀집 지역 재귀적 세분화 (최대 5단계) & 4. 수집된 데이터 DB 저장
@@ -126,7 +170,7 @@ public class CouponDataCollector {
 			List<Callable<List<List<List<Double>>>>> tasks = new ArrayList<>();
 			for (List<List<Double>> polygonToScan : currentLevelPolygons) {
 				final int radiusForTask = currentRadius;
-				Callable<List<List<List<Double>>>> task = () -> scanPolygon(region.getName(), DEFAULT_KEYWORD,
+				Callable<List<List<List<Double>>>> task = () -> scanPolygon(regionName, DEFAULT_KEYWORD,
 					polygonToScan, radiusForTask, foundPlaceIds);
 				tasks.add(task);
 			}
@@ -151,20 +195,9 @@ public class CouponDataCollector {
 
 		if (!currentLevelPolygons.isEmpty() && depth >= MAX_RECURSION_DEPTH) {
 			log.warn("    - 최대 재귀 깊이({})에 도달하여 마지막 {}개 지역 강제 수집 시작...", depth, currentLevelPolygons.size());
-			forceCollectInParallel(region.getName(), DEFAULT_KEYWORD, currentLevelPolygons, currentRadius,
+			forceCollectInParallel(regionName, DEFAULT_KEYWORD, currentLevelPolygons, currentRadius,
 				foundPlaceIds);
 		}
-
-		log.info(">>> [ {} ] 지역, 키워드 [ {} ] 데이터 수집 및 DB 저장 완료.", region.getName(), DEFAULT_KEYWORD);
-
-		// 5. DB에 저장된 데이터를 기반으로 CSV 및 GeoJSON 파일 생성
-		log.info(">>> [ {} ] 지역 파일 생성을 시작합니다...", region.getName());
-		csvExportService.exportSingleRegionToCsv(region.getName(), DEFAULT_KEYWORD);
-		geoJsonExportService.exportSingleRegionToGeoJson(region.getName(), DEFAULT_KEYWORD);
-		log.info(">>> [ {} ] 지역 파일 생성을 완료했습니다.", region.getName());
-
-		long endTime = System.currentTimeMillis();
-		log.info(">>> [ {} ] 지역 수집 완료. 총 소요 시간: {}ms", region.getName(), (endTime - startTime));
 	}
 
 	/**

@@ -7,5 +7,5 @@ import lombok.Data;
 @Data
 public class GeoJsonGeometry {
 	private String type;
-	private List<List<List<Double>>> coordinates;
+	private Object coordinates;
 }

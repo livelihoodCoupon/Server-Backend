@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PlaceIdCacheService {
 
 	private final PlaceRepository placeRepository;
+	private final PlaceIdRedisCacheService redisCacheService;
 	private Set<String> existingPlaceIds;
 	private boolean isBatchMode = false;
 
@@ -57,28 +56,15 @@ public class PlaceIdCacheService {
 			log.debug("배치 모드 - 메모리 캐시에서 장소 ID 확인: {}", placeId);
 			return existingPlaceIds.contains(placeId);
 		} else {
-			// 일반 모드: Redis 캐시 사용
+			// 일반 모드: Redis 캐시 사용 (프록시를 통한 호출로 @Cacheable이 정상 작동)
 			log.debug("일반 모드 - Redis 캐시에서 장소 ID 확인: {}", placeId);
-			return containsWithRedisCache(placeId);
+			return redisCacheService.contains(placeId);
 		}
-	}
-
-	/**
-	 * Redis 캐시를 사용하여 장소 ID 존재 여부를 확인합니다.
-	 */
-	@Cacheable(value = "placeIds", key = "#placeId", unless = "#result == false")
-	@Transactional(readOnly = true)
-	public boolean containsWithRedisCache(String placeId) {
-		log.debug("Redis 캐시에서 장소 ID 존재 여부 확인: {}", placeId);
-		boolean exists = placeRepository.existsByPlaceId(placeId);
-		log.debug("장소 ID {} 존재 여부: {}", placeId, exists);
-		return exists;
 	}
 
 	/**
 	 * 새로운 장소 ID를 캐시에 추가합니다.
 	 */
-	@CachePut(value = "placeIds", key = "#placeId")
 	public boolean add(String placeId) {
 		if (isBatchMode && existingPlaceIds != null) {
 			// 배치 모드: 메모리 캐시에 추가
@@ -86,9 +72,9 @@ public class PlaceIdCacheService {
 			existingPlaceIds.add(placeId);
 			return true;
 		} else {
-			// 일반 모드: Redis 캐시에 추가
+			// 일반 모드: Redis 캐시에 추가 (프록시를 통한 호출로 @CachePut이 정상 작동)
 			log.debug("일반 모드 - Redis 캐시에 장소 ID 추가: {}", placeId);
-			return true; // Redis에 true 값으로 저장
+			return redisCacheService.add(placeId);
 		}
 	}
 }

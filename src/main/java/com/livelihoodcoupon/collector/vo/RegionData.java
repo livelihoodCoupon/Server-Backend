@@ -7,5 +7,5 @@ import lombok.Data;
 @Data
 public class RegionData {
 	private String name;
-	private List<List<Double>> polygon;
+	private List<List<List<List<Double>>>> polygons;
 }

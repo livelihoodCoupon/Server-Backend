@@ -8,11 +8,15 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.livelihoodcoupon.collector.dto.GeoJsonFeature;
 import com.livelihoodcoupon.collector.dto.GeoJsonFeatureCollection;
 import com.livelihoodcoupon.collector.vo.RegionData;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Component
 public class RegionLoader {
 
@@ -78,10 +82,27 @@ public class RegionLoader {
 			regionData.setName(fullName);
 		}
 
-		if (feature.getGeometry() != null && feature.getGeometry().getCoordinates() != null && !feature.getGeometry()
-			.getCoordinates()
-			.isEmpty()) {
-			regionData.setPolygon(feature.getGeometry().getCoordinates().get(0));
+		if (feature.getGeometry() != null && feature.getGeometry().getCoordinates() != null) {
+			String type = feature.getGeometry().getType();
+			Object rawCoordinates = feature.getGeometry().getCoordinates();
+
+			try {
+				if ("Polygon".equals(type)) {
+					List<List<List<Double>>> polygon = objectMapper.convertValue(rawCoordinates, new TypeReference<>() {
+					});
+					regionData.setPolygons(List.of(polygon));
+				} else if ("MultiPolygon".equals(type)) {
+					List<List<List<List<Double>>>> multiPolygon = objectMapper.convertValue(rawCoordinates,
+						new TypeReference<>() {
+						});
+					regionData.setPolygons(multiPolygon);
+				}
+			} catch (Exception e) {
+				log.error("Could not parse coordinates for region: {}. Type: {}. Error: {}", regionData.getName(), type,
+					e.getMessage());
+				// Set polygons to null or empty list to indicate failure for this specific region
+				regionData.setPolygons(null);
+			}
 		}
 
 		return regionData;

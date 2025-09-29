@@ -6,11 +6,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
@@ -33,7 +30,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.place.repository.PlaceRepository;
-import com.livelihoodcoupon.place.service.PlaceIdCacheService;
+import com.livelihoodcoupon.place.service.PlaceIdRedisCacheService;
 
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +47,7 @@ public class PlaceCsvBatchConfig {
 	private final EntityManagerFactory entityManagerFactory;
 	private final ResourcePatternResolver resourcePatternResolver; // ResourcePatternResolver 주입
 	private final PlaceRepository placeRepository; // 중복 확인을 위한 PlaceRepository 주입
-	private final PlaceIdCacheService placeIdCacheService; // PlaceIdCacheService 주입
+	private final PlaceIdRedisCacheService placeIdRedisCacheService; // PlaceIdRedisCacheService 주입
 
 	@Bean
 	public Job placeCsvJob() {
@@ -66,20 +63,6 @@ public class PlaceCsvBatchConfig {
 			.reader(multiResourceItemReader(null)) // 초기값은 null, 실제 값은 application.yml에서 로드
 			.processor(placeCsvProcessor())
 			.writer(placeCsvWriter())
-			.listener(new StepExecutionListener() {
-				@Override
-				public void beforeStep(StepExecution stepExecution) {
-					// 배치 시작 시 배치 모드 활성화
-					placeIdCacheService.enableBatchMode();
-				}
-
-				@Override
-				public ExitStatus afterStep(StepExecution stepExecution) {
-					// 배치 완료 시 배치 모드 비활성화
-					placeIdCacheService.disableBatchMode();
-					return stepExecution.getExitStatus();
-				}
-			})
 			.build();
 	}
 
@@ -129,13 +112,13 @@ public class PlaceCsvBatchConfig {
 	@Bean
 	public ItemProcessor<PlaceCsvDto, Place> placeCsvProcessor() {
 		return item -> {
-			// 인메모리 캐시를 사용하여 placeId 중복 확인
-			if (placeIdCacheService.contains(item.getPlaceId())) {
-				log.debug("중복된 placeId (캐시에서): {} 건너뜀", item.getPlaceId());
-				return null; // 캐시에 이미 존재하는 아이템은 건너뜀
+			// Redis 캐시를 사용하여 placeId 중복 확인
+			if (placeIdRedisCacheService.contains(item.getPlaceId())) {
+				log.debug("중복된 placeId (Redis 캐시에서): {} 건너뜀", item.getPlaceId());
+				return null; // Redis 캐시에 이미 존재하는 아이템은 건너뜀
 			}
-			// 새로운 아이템인 경우 캐시에 추가 (현재 배치 내 중복 처리용)
-			placeIdCacheService.add(item.getPlaceId());
+			// 새로운 아이템인 경우 Redis 캐시에 추가
+			placeIdRedisCacheService.add(item.getPlaceId());
 			GeometryFactory geometryFactory = new GeometryFactory();
 			WKTReader wktReader = new WKTReader(geometryFactory);
 			Point point = null;

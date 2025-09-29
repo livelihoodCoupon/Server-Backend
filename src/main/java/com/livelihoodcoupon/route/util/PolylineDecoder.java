@@ -40,7 +40,9 @@ public class PolylineDecoder {
 		int lng = 0;
 
 		while (index < polyline.length()) {
-			int b, shift = 0, result = 0;
+			int b;
+			int shift = 0;
+			int result = 0;
 			do {
 				b = polyline.charAt(index++) - 63;
 				result |= (b & 0x1f) << shift;

@@ -187,7 +187,7 @@ public class ParkingLotCsvBatchConfig {
         return writer;
     }
 
-    // ===== Helper =====
+    // Helper
     private static String trimOrNull(String s) {
         if (s == null) return null;
         String t = s.trim();

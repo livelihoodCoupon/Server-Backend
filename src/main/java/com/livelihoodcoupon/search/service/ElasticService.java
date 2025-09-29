@@ -101,8 +101,7 @@ public class ElasticService {
 
 		//검색하기
 		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
-		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultList, dto, maxRecordSize,
-			pageable);
+		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultList, dto, pageable);
 
 		//dto 변환, 거리계산
 		List<PlaceSearchResponseDto> dtoPage = response.hits().hits()
@@ -113,7 +112,7 @@ public class ElasticService {
 				// 각 Place에 대해 거리 계산
 				return toSearchPositionDto(place, refLat, refLng);
 			}).collect(Collectors.toList());
-		
+
 		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0; //null체크
 		long resultTotalHits = Math.min(totalHits, maxRecordSize); //레코드 200개로 자르기
 		log.info("엘라스틱 서치 결과 return 총 갯수 : {}", totalHits);

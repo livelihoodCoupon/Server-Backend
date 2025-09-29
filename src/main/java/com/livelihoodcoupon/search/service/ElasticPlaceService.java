@@ -23,9 +23,13 @@ import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.GeoDistanceQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchBoolPrefixQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchPhrasePrefixQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -93,14 +97,14 @@ public class ElasticPlaceService {
 		String keyword = dto.getWord();
 
 		List<String> results = new ArrayList<>();
-		results.addAll(searchField("place_name.autocomplete", keyword, maxSize));
-		results.addAll(searchField("category_level1.autocomplete", keyword, maxSize));
-		results.addAll(searchField("category_level2.autocomplete", keyword, maxSize));
-		results.addAll(searchField("category_level3.autocomplete", keyword, maxSize));
-		results.addAll(searchField("road_address_sido.autocomplete", keyword, maxSize));
-		results.addAll(searchField("road_address_sigugun.autocomplete", keyword, maxSize));
-		results.addAll(searchField("road_address_dong.autocomplete", keyword, maxSize));
-		results.addAll(searchField("road_address_road.autocomplete", keyword, maxSize));
+		results.addAll(searchField("road_address_sido.autocomplete", keyword, 8.0f, maxSize));
+		results.addAll(searchField("road_address_sigungu.autocomplete", keyword, 7.0f, maxSize));
+		results.addAll(searchField("road_address_dong.autocomplete", keyword, 6.0f, maxSize));
+		results.addAll(searchField("road_address_road.autocomplete", keyword, 5.0f, maxSize));
+		results.addAll(searchField("category_level1.autocomplete", keyword, 4.0f, maxSize));
+		results.addAll(searchField("category_level2.autocomplete", keyword, 3.0f, maxSize));
+		results.addAll(searchField("category_level3.autocomplete", keyword, 2.0f, maxSize));
+		results.addAll(searchField("place_name.autocomplete", keyword, 1.0f, maxSize));
 
 		log.info("======>autocompletePlaceNames___{}", keyword);
 
@@ -120,13 +124,16 @@ public class ElasticPlaceService {
 	 * @return
 	 * @throws IOException
 	 */
-	private List<String> searchField(String field, String keyword, int maxSize) throws IOException {
-		Query query = MatchPhrasePrefixQuery.of(m -> m
+	private List<String> searchField(String field,
+		String keyword, float boost, int maxSize) throws IOException {
+
+		Query query = MatchBoolPrefixQuery.of(m -> m
 			.field(field)
 			.query(keyword)
+			.boost(boost)
 		)._toQuery();
 
-		log.info("======>searchField____{}", query);
+		log.info("======>searchField____{}__{}__{}", query, field, keyword);
 
 		SearchResponse<PlaceDocument> response = client.search(s -> s
 				.index(index)
@@ -148,18 +155,16 @@ public class ElasticPlaceService {
 	 * @return
 	 */
 	private String getFieldValue(PlaceDocument doc, String field) {
-
 		log.info("======>getFieldValue____{}", field);
-
 		return switch (field) {
-			case "place_name.autocomplete" -> doc.getPlaceName();
+			case "road_address_sido.autocomplete" -> doc.getRoadAddressSido();
+			case "road_address_sigungu.autocomplete" -> doc.getRoadAddressSigungu();
+			case "road_address_dong.autocomplete" -> doc.getRoadAddressDong();
+			case "road_address_road.autocomplete" -> doc.getRoadAddressRoad();
 			case "category_level1.autocomplete" -> doc.getCategoryLevel1();
 			case "category_level2.autocomplete" -> doc.getCategoryLevel2();
 			case "category_level3.autocomplete" -> doc.getCategoryLevel3();
-			case "road_address_sido.autocomplete" -> doc.getRoadAddressSido();
-			case "road_address_sigugun.autocomplete" -> doc.getRoadAddressSigungu();
-			case "road_address_dong.autocomplete" -> doc.getRoadAddressDong();
-			case "road_address_road.autocomplete" -> doc.getRoadAddressRoad();
+			case "place_name.autocomplete" -> doc.getPlaceName();
 			default -> null;
 		};
 	}
@@ -169,17 +174,16 @@ public class ElasticPlaceService {
 	 * 단어분리 : komoran 방식
 	 * @param resultList
 	 * @param dto
-	 * @param maxRecordSize
 	 * @param pageable
 	 * @return
 	 * @throws IOException
 	 */
 	public SearchResponse<PlaceDocument> searchPlace(List<SearchToken> resultList,
-		SearchRequestDto dto, int maxRecordSize, Pageable pageable) throws IOException {
+		SearchRequestDto dto, Pageable pageable) throws IOException {
 
 		try {
 			//쿼리생성
-			//log.info("======>ElasticPlaceService 위도:{}, 경도:{}", dto.getLat(), dto.getLng());
+			log.info("======>ElasticPlaceService 위도:{}, 경도:{}", dto.getLat(), dto.getLng());
 
 			//위치 가져오기
 			double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
@@ -199,10 +203,6 @@ public class ElasticPlaceService {
 
 			//주소, 카테고리, 상가명 쿼리 생성
 			List<Query> shouldQueries = new ArrayList<>();
-			List<Query> mustQueries = new ArrayList<>();
-			List<Query> mustQueriesAddress = new ArrayList<>();
-			List<Query> mustQueriesCategory = new ArrayList<>();
-			List<Query> mustQueriesShopName = new ArrayList<>();
 
 			//목록이 공백일수 있기에 한번더체크
 			List<SearchToken> resultList2;
@@ -225,8 +225,10 @@ public class ElasticPlaceService {
 							shouldQueries.add(roadQuery);
 							break;
 						case "category":
-							Query categoryQuery = MatchQuery.of(
-								m -> m.field("category").query(word.trim()).boost(2.0f))._toQuery();
+							Query categoryQuery = MultiMatchQuery.of(
+								m -> m.fields("category.autocomplete^3", "category.nori^2", "category^1")
+									.query(word.trim())
+									.boost(2.0f))._toQuery();
 							log.info("======>ElasticPlaceService fieldName category 검색__{}", word);
 							shouldQueries.add(categoryQuery);
 							break;
@@ -240,29 +242,63 @@ public class ElasticPlaceService {
 				}
 			}
 
+/*
 			//마지막쿼리 만들기
 			int finalCount = count;
-			Query finalQuery = BoolQuery.of(b -> b
+			Query finalQuery__ = BoolQuery.of(b -> b
 				.must(geoQuery)
 				.should(shouldQueries)
 				.minimumShouldMatch(String.valueOf(finalCount)) // should 중 1개 이상만 일치하면 됨
 			)._toQuery();
 			log.info("======>ElasticPlaceService finalCount : {}", finalCount);
+			log.info("====>ElasticPlaceService 333 finalQuery={}", finalQuery__);
+*/
 
-/*			List<Query> shouldQueries = new ArrayList<>();
-			shouldQueries.add(MatchQuery.of(
-				m -> m.field("road_address.autocomplete").query(dto.getQuery()))._toQuery());
-			//shouldQueries.add(MatchQuery.of(
-			//	m -> m.field("lot_address.autocomplete").query(dto.getQuery()))._toQuery());
-			shouldQueries.add(MatchQuery.of(
-				m -> m.field("category.autocomplete").query(dto.getQuery()))._toQuery());
-			shouldQueries.add(MatchQuery.of(
-				m -> m.field("place_name.autocomplete").query(dto.getQuery()).boost(2.0f))._toQuery());
-			Query finalQuery = BoolQuery.of(b -> b
-				.must(geoQuery)
-				.should(shouldQueries)
-				.minimumShouldMatch(String.valueOf(1)) // should 중 1개 이상만 일치하면 됨
-			)._toQuery(); */
+			//마지막 쿼리 만들기2
+			int finalCount = count;
+			BoolQuery boolQuery = BoolQuery.of(b -> {
+				b.must(geoQuery);
+				b.minimumShouldMatch(String.valueOf(finalCount)); // should 중 1개 이상만 일치하면 됨
+				for (SearchToken token : resultList2) {
+
+					// 1. edge_ngram 자동완성용 (BoolPrefix)
+					b.should(MultiMatchQuery.of(m -> m
+						.query(token.getMorph())
+						.fields(List.of(
+							"place_name.autocomplete^4",
+							"road_address.autocomplete^3",
+							"category.autocomplete^2"
+						))
+						.type(TextQueryType.BoolPrefix)
+					)._toQuery());
+
+					// 2. nori 형태소 분석기 기반 match 쿼리 (일반 텍스트 검색)
+					b.should(MatchQuery.of(m -> m
+						.field("place_name.nori")
+						.query(token.getMorph())
+						.operator(Operator.And)
+						.boost(4.0f)
+					)._toQuery());
+
+					b.should(MatchQuery.of(m -> m
+						.field("road_address.nori")
+						.query(token.getMorph())
+						.operator(Operator.And)
+						.boost(3.0f)
+					)._toQuery());
+
+					b.should(MatchQuery.of(m -> m
+						.field("category.nori")
+						.query(token.getMorph())
+						.operator(Operator.And)
+						.boost(2.0f)
+					)._toQuery());
+
+				}
+				return b;
+			});
+			Query finalQuery = boolQuery._toQuery();
+			log.info("====>ElasticPlaceService 333 finalQuery={}", finalQuery);
 
 			// 정렬 옵션
 			SortOptions geoSort = SortOptions.of(s -> s
@@ -284,8 +320,6 @@ public class ElasticPlaceService {
 			int pageSize = pageable.getPageSize();         // 끝 인덱스
 			int pageFrom = pageNumber * pageSize;         // 시작 인덱스
 
-			log.info("====>ElasticPlaceService 333 finalQuery={}", finalQuery);
-
 			// 검색 요청후  return
 			SearchResponse<PlaceDocument> response = client.search(s -> s
 					.index(index)
@@ -299,7 +333,6 @@ public class ElasticPlaceService {
 
 		} catch (IOException e) {
 			e.printStackTrace();
-			log.error("====>ElasticPlaceService error===={}", e);
 			throw new RuntimeException("Elasticsearch 검색에 실패하였습니다.", e);
 		}
 	}

@@ -254,61 +254,52 @@ GET /api/routes/search
 
 **Query Parameters:**
 
-- `startLng` (double): 출발지 경도 (X 좌표)
-- `startLat` (double): 출발지 위도 (Y 좌표)
-- `endLng` (double): 도착지 경도 (X 좌표)
-- `endLat` (double): 도착지 위도 (Y 좌표)
-- `routeType` (string): 경로 타입
+- `startLng` (double, 필수): 출발지 경도 (한국 좌표 범위: 124.0 ~ 132.0)
+- `startLat` (double, 필수): 출발지 위도 (한국 좌표 범위: 33.0 ~ 39.0)
+- `endLng` (double, 필수): 도착지 경도 (한국 좌표 범위: 124.0 ~ 132.0)
+- `endLat` (double, 필수): 도착지 위도 (한국 좌표 범위: 33.0 ~ 39.0)
+- `routeType` (string, 선택): 경로 타입 (기본값: "driving")
     - `driving`: 자동차 경로 (카카오 API 사용)
     - `walking`: 도보 경로 (OSRM 사용)
     - `cycling`: 자전거 경로 (OSRM 사용)
     - `transit`: 대중교통 경로 (OSRM 사용)
 
+**요청 예시:**
+```bash
+curl -X GET "http://localhost:8080/api/routes/search?startLng=127.0276&startLat=37.4979&endLng=127.0286&endLat=37.4989&routeType=driving"
+```
+
 **응답 예시 (자동차 경로):**
 
 ```json
 {
-  "coordinates": [
-    {
-      "lng": 127.02759059417166,
-      "lat": 37.497949935830974
-    },
-    {
-      "lng": 127.02766823190767,
-      "lat": 37.49806771206318
-    }
-  ],
-  "totalDistance": 420.0,
-  "totalDuration": 148.0,
-  "routeType": "DRIVING",
-  "steps": [
-    {
-      "instruction": "출발지",
-      "distance": 0.0,
-      "duration": 0.0,
-      "startLocation": {
-        "lng": 127.02759059417166,
-        "lat": 37.497949935830974
+  "success": true,
+  "data": {
+    "coordinates": [
+      {"lng": 127.027591411983, "lat": 37.497886868699254},
+      {"lng": 127.02774914062023, "lat": 37.49793321971287}
+    ],
+    "totalDistance": 977.0,
+    "totalDuration": 419.0,
+    "routeType": "DRIVING",
+    "steps": [
+      {
+        "instruction": "출발지",
+        "distance": 0.0,
+        "duration": 0.0,
+        "startLocation": {"lng": 127.027591411983, "lat": 37.497886868699254},
+        "endLocation": {"lng": 127.027591411983, "lat": 37.497886868699254}
       },
-      "endLocation": {
-        "lng": 127.02759059417166,
-        "lat": 37.497949935830974
+      {
+        "instruction": "우회전",
+        "distance": 252.0,
+        "duration": 31.0,
+        "startLocation": {"lng": 127.03027259286037, "lat": 37.498692826801836},
+        "endLocation": {"lng": 127.03027259286037, "lat": 37.498692826801836}
       }
-    },
-    {
-      "instruction": "우회전",
-      "distance": 190.0,
-      "duration": 57.0,
-      "startLocation": {
-        "lng": 127.02697034078221,
-        "lat": 37.49955771701745
-      },
-      "endLocation": {
-        "lng": 127.02697034078221,
-        "lat": 37.49955771701745
-      }
-    }
-  ]
+    ]
+  },
+  "timestamp": "2025-09-29T18:55:01.718578918"
 }
 ```
 
@@ -316,34 +307,26 @@ GET /api/routes/search
 
 ```json
 {
-  "coordinates": [
-    {
-      "lng": 127.027641,
-      "lat": 37.497897
-    },
-    {
-      "lng": 127.02863,
-      "lat": 37.498918
-    }
-  ],
-  "totalDistance": 429.1,
-  "totalDuration": 61.9,
-  "routeType": "WALKING",
-  "steps": [
-    {
-      "instruction": null,
-      "distance": 8.4,
-      "duration": 5.5,
-      "startLocation": {
-        "lng": 127.027641,
-        "lat": 37.497897
-      },
-      "endLocation": {
-        "lng": 127.027641,
-        "lat": 37.497897
+  "success": true,
+  "data": {
+    "coordinates": [
+      {"lng": 127.02761, "lat": 37.49789},
+      {"lng": 127.0286, "lat": 37.49891}
+    ],
+    "totalDistance": 429.2,
+    "totalDuration": 61.6,
+    "routeType": "WALKING",
+    "steps": [
+      {
+        "instruction": null,
+        "distance": 11.7,
+        "duration": 5.6,
+        "startLocation": {"lng": 127.027606, "lat": 37.497887},
+        "endLocation": {"lng": 127.027606, "lat": 37.497887}
       }
-    }
-  ]
+    ]
+  },
+  "timestamp": "2025-09-29T18:56:00.471269293"
 }
 ```
 
@@ -353,10 +336,10 @@ GET /api/routes/search
 {
   "success": false,
   "error": {
-    "code": "UNSUPPORTED_ROUTE_TYPE",
-    "message": "지원하지 않는 경로 타입입니다: INVALID_TYPE"
+    "code": "R006",
+    "message": "유효하지 않은 좌표입니다"
   },
-  "timestamp": "2025-09-22T12:00:00.000Z"
+  "timestamp": "2025-09-29T18:55:01.718578918"
 }
 ```
 
@@ -370,19 +353,33 @@ GET /api/routes/search
 GET /api/routes/providers
 ```
 
+**요청 예시:**
+```bash
+curl -X GET "http://localhost:8080/api/routes/providers"
+```
+
 **응답 예시:**
 
 ```json
-[
-  "KakaoNavi",
-  "OSRM"
-]
+{
+  "success": true,
+  "data": ["KakaoNavi", "OSRM"],
+  "timestamp": "2025-09-29T18:55:01.718578918"
+}
 ```
 
 **설명:**
 
 - `KakaoNavi`: 카카오내비 API를 사용하여 자동차 경로 제공
 - `OSRM`: Open Source Routing Machine을 사용하여 도보/자전거/대중교통 경로 제공
+
+### 에러 코드
+- `R001`: 지원하지 않는 경로 타입
+- `R002`: 경로 제공자 서비스가 일시적으로 사용할 수 없음
+- `R003`: 경로를 찾을 수 없음
+- `R004`: 카카오 API 서비스 오류가 발생했습니다
+- `R005`: OSRM 서비스 오류가 발생했습니다
+- `R006`: 유효하지 않은 좌표입니다
 
 </br>
 
@@ -567,6 +564,6 @@ GET /admin/routes/monitoring/performance
 
 ---
 
-**마지막 업데이트**: 2025-09-25  
-**문서 버전**: 1.1.0
+**마지막 업데이트**: 2025-09-30  
+**문서 버전**: 1.1.1
 

@@ -22,8 +22,9 @@ public enum ErrorCode {
 	UNSUPPORTED_ROUTE_TYPE(HttpStatus.BAD_REQUEST, "R001", "지원하지 않는 경로 타입입니다"),
 	ROUTE_PROVIDER_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "R002", "경로 제공자 서비스가 일시적으로 사용할 수 없습니다"),
 	ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "R003", "경로를 찾을 수 없습니다"),
-	KAKAO_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R004", "카카오 API 서비스 오류"),
-	OSRM_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R005", "OSRM 서비스 오류");
+	KAKAO_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R004", "카카오 API 서비스 오류가 발생했습니다"),
+	OSRM_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R005", "OSRM 서비스 오류가 발생했습니다"),
+	INVALID_COORDINATES(HttpStatus.BAD_REQUEST, "R006", "유효하지 않은 좌표입니다");
 
 	private final HttpStatus status;
 	private final String code;

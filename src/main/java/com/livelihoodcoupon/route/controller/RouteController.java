@@ -51,6 +51,9 @@ public class RouteController {
 		@RequestParam double endLat,
 		@RequestParam(defaultValue = "driving") String routeType) {
 
+		// 좌표 유효성 검증
+		validateCoordinates(startLng, startLat, endLng, endLat);
+
 		RouteType type = parseRouteType(routeType);
 		RouteRequest request = RouteRequest.builder()
 			.startLng(startLng)
@@ -73,6 +76,27 @@ public class RouteController {
 	@GetMapping("/providers")
 	public ResponseEntity<CustomApiResponse<java.util.List<String>>> getProviders() {
 		return ResponseEntity.ok(CustomApiResponse.success(routeService.getAvailableProviders()));
+	}
+
+	/**
+	 * 좌표 유효성 검증
+	 */
+	private void validateCoordinates(double startLng, double startLat, double endLng, double endLat) {
+		// 한국 좌표 범위 검증 (대략적인 범위)
+		if (startLng < 124.0 || startLng > 132.0 || startLat < 33.0 || startLat > 39.0) {
+			throw new BusinessException(ErrorCode.INVALID_COORDINATES,
+				"출발지 좌표가 유효하지 않습니다. 한국 내 좌표를 입력해주세요.");
+		}
+		if (endLng < 124.0 || endLng > 132.0 || endLat < 33.0 || endLat > 39.0) {
+			throw new BusinessException(ErrorCode.INVALID_COORDINATES,
+				"도착지 좌표가 유효하지 않습니다. 한국 내 좌표를 입력해주세요.");
+		}
+
+		// 출발지와 도착지가 같은지 검증
+		if (Math.abs(startLng - endLng) < 0.0001 && Math.abs(startLat - endLat) < 0.0001) {
+			throw new BusinessException(ErrorCode.INVALID_COORDINATES,
+				"출발지와 도착지가 동일합니다.");
+		}
 	}
 
 	/**

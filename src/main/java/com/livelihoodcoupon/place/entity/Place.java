@@ -38,6 +38,18 @@ public class Place extends BaseEntity {
 	@Column(name = "place_name")
 	private String placeName;
 
+	@Column(name = "road_address_sido")
+	private String roadAddressSido;
+
+	@Column(name = "road_address_sigungu")
+	private String roadAddressSigungu;
+
+	@Column(name = "road_address_road")
+	private String roadAddressRoad;
+
+	@Column(name = "road_address_dong")
+	private String roadAddressDong;
+
 	@Column(name = "road_address")
 	private String roadAddress;
 
@@ -49,6 +61,18 @@ public class Place extends BaseEntity {
 
 	@Column(name = "category")
 	private String category;
+
+	@Column(name = "category_level1")
+	private String categoryLevel1;
+
+	@Column(name = "category_level2")
+	private String categoryLevel2;
+
+	@Column(name = "category_level3")
+	private String categoryLevel3;
+	
+	@Column(name = "category_level4")
+	private String categoryLevel4;
 
 	@Column(name = "keyword")
 	private String keyword;

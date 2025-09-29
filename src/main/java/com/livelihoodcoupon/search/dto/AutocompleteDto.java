@@ -9,12 +9,12 @@ import lombok.Setter;
 @Setter
 @Getter
 @Builder
-public class SearchAutoWord {
+public class AutocompleteDto {
 
 	@NotBlank(message = "검색어는 필수입니다.")
 	private String word;
 
-	public SearchAutoWord(String word) {
+	public AutocompleteDto(String word) {
 		this.word = word;
 	}
 }

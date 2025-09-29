@@ -109,6 +109,7 @@ public class SearchService {
 				request.setLng(coordinate.longitude);
 				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress,
 					coordinate.latitude, coordinate.longitude);
+
 				return Mono.just(request);
 			})
 			.map(r -> ResponseEntity.ok(r))
@@ -182,6 +183,7 @@ public class SearchService {
 	}
 
 	public String isAddress(String morph, String pos) {
+		//redis에서 address, category 구분
 		return redisService.getWordInfo(morph);
 	}
 

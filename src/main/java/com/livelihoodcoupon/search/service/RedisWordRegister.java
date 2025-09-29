@@ -1,5 +1,10 @@
 package com.livelihoodcoupon.search.service;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +18,33 @@ public class RedisWordRegister {
 		this.redisService = redisService;
 	}
 
-	public void wordRegister() {
+	public void fileWordRegister(String redisKey) throws IOException {
+		// Redis 키
+		String pre = "word:";
+		String filePath = "dict/" + redisKey + "_dict.txt";
+
+		// 이미 초기화된 경우는 건너뜀 (옵션)
+		if (equals(redisService.getRedisTemplate().hasKey(pre + redisKey))) {
+			System.out.println("Redis에 address_dict가 이미 초기화되어 있습니다.");
+			return;
+		}
+
+		// 파일 읽기
+		ClassPathResource resource = new ClassPathResource(filePath);
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				// 공백 제거 및 비어있지 않은 단어만
+				String trimmed = line.trim();
+				if (!trimmed.isEmpty()) {
+					redisService.saveWord(trimmed, redisKey, "", "");
+				}
+			}
+		}
+		System.out.println("Redis에 address_dict 초기화 완료!");
+	}
+
+	public void wordRegister() throws IOException {
 
 		if (!redisService.getRedisTemplate().hasKey("word:서울시")) {
 			//address 등록
@@ -194,5 +225,6 @@ public class RedisWordRegister {
 			redisService.saveWord("야영", "category", "2차", "숙박");
 			log.info("category 숙박 2차 등록");
 		}
+
 	}
 }

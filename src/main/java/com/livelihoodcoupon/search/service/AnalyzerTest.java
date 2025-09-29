@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
+import com.livelihoodcoupon.common.service.DictCacheService;
 import com.livelihoodcoupon.search.dto.NoriToken;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -17,16 +18,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class NoriAnalyzerTest {
+public class AnalyzerTest {
 	private final ElasticsearchClient client;
-	private final AddressDictLoader addressDictLoader;
-	private final CategoryDictLoader categoryDictLoader;
+	private final DictCacheService dictCacheService;
 
-	public NoriAnalyzerTest(ElasticsearchClient client, AddressDictLoader addressDictLoader,
-		CategoryDictLoader categoryDictLoader) {
+	public AnalyzerTest(ElasticsearchClient client, DictCacheService dictCacheService) {
 		this.client = client;
-		this.addressDictLoader = addressDictLoader;
-		this.categoryDictLoader = categoryDictLoader;
+		this.dictCacheService = dictCacheService;
 	}
 
 	public List<NoriToken> analyzeText(String text) throws IOException {
@@ -44,7 +42,7 @@ public class NoriAnalyzerTest {
 			category = isCategoryAddress(token.token());
 
 			list.add(new NoriToken(token.token(), category));
-			log.info("====>analyzeText token : {},___category : {}", token.token(), category);
+			log.info("====>analyzeText token : {}, category : {}", token.token(), category);
 		}
 		return list;
 	}
@@ -56,15 +54,12 @@ public class NoriAnalyzerTest {
 	 * @throws IOException
 	 */
 	public String isCategoryAddress(String token) throws IOException {
-
-		boolean isAddress = addressDictLoader.contains(token);
-		boolean isCategory = categoryDictLoader.contains(token);
 		String checkCategory;
 
-		if (isAddress) {
+		if (dictCacheService.containsAddress(token)) {
 			log.info("====>isCategoryAddress + → load_address 주소");
-			checkCategory = "load_address";
-		} else if (isCategory) {
+			checkCategory = "address";
+		} else if (dictCacheService.containsCategory(token)) {
 			log.info("====>isCategoryAddress  → category 카테고리");
 			checkCategory = "category";
 		} else {
@@ -72,7 +67,6 @@ public class NoriAnalyzerTest {
 			checkCategory = "place_name";
 		}
 		return checkCategory;
-
 	}
 
 	/**

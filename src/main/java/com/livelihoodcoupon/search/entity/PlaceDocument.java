@@ -28,6 +28,18 @@ public class PlaceDocument {
 	@JsonProperty("place_name")
 	private String placeName;
 
+	@JsonProperty("road_address_sido")
+	private String roadAddressSido;
+
+	@JsonProperty("road_address_sigungu")
+	private String roadAddressSigungu;
+
+	@JsonProperty("road_address_road")
+	private String roadAddressRoad;
+
+	@JsonProperty("road_address_dong")
+	private String roadAddressDong;
+
 	@JsonProperty("road_address")
 	private String roadAddress;
 
@@ -36,6 +48,18 @@ public class PlaceDocument {
 
 	@JsonProperty("phone")
 	private String phone;
+
+	@JsonProperty("category_level1")
+	private String categoryLevel1;
+
+	@JsonProperty("category_level2")
+	private String categoryLevel2;
+
+	@JsonProperty("category_level3")
+	private String categoryLevel3;
+
+	@JsonProperty("category_level4")
+	private String categoryLevel4;
 
 	@JsonProperty("category")
 	private String category;

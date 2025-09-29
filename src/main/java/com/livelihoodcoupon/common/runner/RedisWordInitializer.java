@@ -1,5 +1,7 @@
 package com.livelihoodcoupon.common.runner;
 
+import java.io.IOException;
+
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -19,9 +21,13 @@ public class RedisWordInitializer implements ApplicationRunner {
 	}
 
 	@Override
-	public void run(ApplicationArguments args) {
+	public void run(ApplicationArguments args) throws IOException {
+
 		log.info("Redis 단어 등록 시작111");
-		redisWordRegister.wordRegister();
+		//redisWordRegister.wordRegister();
+
+		redisWordRegister.fileWordRegister("address");
+		redisWordRegister.fileWordRegister("category");
 		log.info("Redis 단어 등록 종료222");
 	}
 }

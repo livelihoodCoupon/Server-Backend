@@ -14,7 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.collector.service.KakaoApiService;
-import com.livelihoodcoupon.search.dto.NoriToken;
+import com.livelihoodcoupon.search.dto.AutocompleteDto;
+import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchToken;
@@ -38,15 +39,27 @@ public class ElasticService {
 	private final KakaoApiService kakaoApiService;
 	private final RedisService redisService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
-	private final NoriAnalyzerTest noriAnalyzerTest;
+	private final AnalyzerTest analyzerTest;
 
 	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
-		KakaoApiService kakaoApiService, RedisService redisService, NoriAnalyzerTest noriAnalyzerTest) {
+		KakaoApiService kakaoApiService, RedisService redisService, AnalyzerTest analyzerTest) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
 		this.redisService = redisService;
-		this.noriAnalyzerTest = noriAnalyzerTest;
+		this.analyzerTest = analyzerTest;
+	}
+
+	/**
+	 * 단어 자동완성 서비스
+	 * @param dto
+	 * @param maxRecordSize
+	 * @return
+	 * @throws IOException
+	 */
+	public List<AutocompleteResponseDto> elasticSearchAutocomplete(AutocompleteDto dto, int maxRecordSize) throws
+		IOException {
+		return elasticPlaceService.autocompletePlaceNames(dto, maxRecordSize);
 	}
 
 	/**
@@ -62,49 +75,49 @@ public class ElasticService {
 		String query = dto.getQuery();
 
 		//코모란 자연어 형태소 분리
-		//List<SearchToken> resultList = analysisChat(query);
+		List<SearchToken> resultList = analysisChat(query);
 		//nori 단어분리
-		List<NoriToken> resultNori = noriAnalyzerTest.analyzeText(query);
+		//List<NoriToken> resultNori = noriAnalyzerTest.analyzeText(query);
 		//분리된 단어들에서 주소가져오기
-		String searchFullAddress = noriAnalyzerTest.getAddress(resultNori);
+		//String searchFullAddress = noriAnalyzerTest.getAddress(resultNori);
 
 		//검색어에 주소가 있을 경우 새로운 위치 가져오기
-/*
 		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
 		if (searchNewAddress != null && !searchNewAddress.isEmpty()) {
 			SearchRequestDto result = handleAddressPosition(searchNewAddress, dto).block().getBody();
 			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
 		}
-*/
+
+/*
 		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
 		if (searchFullAddress != null && !searchFullAddress.isEmpty()) {
 			SearchRequestDto result = handleAddressPosition(searchFullAddress, dto).block().getBody();
 			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
 		}
-
+*/
 		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
 		double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
 		double refLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
 
 		//검색하기
 		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
-		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultNori, dto, maxRecordSize,
+		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultList, dto, maxRecordSize,
 			pageable);
-		//위치계산하기
+
+		//dto 변환, 거리계산
 		List<PlaceSearchResponseDto> dtoPage = response.hits().hits()
 			.stream()
+			.limit(maxRecordSize)
 			.map(hit -> hit.source())
 			.map(place -> {
 				// 각 Place에 대해 거리 계산
 				return toSearchPositionDto(place, refLat, refLng);
 			}).collect(Collectors.toList());
-
-		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0;
-		//int totalPages = (int)Math.ceil((double)totalHits / pageSize);
+		
+		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0; //null체크
+		long resultTotalHits = Math.min(totalHits, maxRecordSize); //레코드 200개로 자르기
 		log.info("엘라스틱 서치 결과 return 총 갯수 : {}", totalHits);
-		return new PageImpl<>(dtoPage, pageable, totalHits);
-
-		////////////////////////////////////
+		return new PageImpl<>(dtoPage, pageable, resultTotalHits);
 	}
 
 	/**
@@ -157,7 +170,7 @@ public class ElasticService {
 	 * - 카페 - NNG	일반 명사 (장소/시설)
 	 * - 맛집 - NNG	일반 명사 (장소/음식점)
 	 **/
-	public List<SearchToken> analysisChat(String keyword) {
+	public List<SearchToken> analysisChat(String keyword) throws IOException {
 		log.info("analysisChat 호출 시작222");
 
 		//단어 형태 자동 분리
@@ -173,9 +186,9 @@ public class ElasticService {
 			// 문제를 알리고 빈 리스트로 대체
 			return Collections.emptyList();
 		}
+
 		List<SearchToken> list = new ArrayList<>();
 		StringBuilder builder = new StringBuilder();
-
 		//분리된 문자열 token list 생성
 		for (Token token : tokenList) {
 			//token 공백여부 체크
@@ -190,20 +203,23 @@ public class ElasticService {
 				continue;
 			}
 
-			//redis 필드값 가져오기
-			String redisFieldName = isAddress(token.getMorph(), token.getPos());
-			if (redisFieldName != null && redisFieldName.equals("address")) {
+			//txt dict 파일에서 필드값 가져오기
+			String getFieldName = isAddress(token.getMorph());
+
+			//필드가 address 이면 검색할 주소 build
+			if (getFieldName != null && getFieldName.equals("address")) {
 				builder.append(" ").append(token.getMorph());
 			}
 
 			//Token을 SearchToken으로 통합하기
 			SearchToken searchToken = new SearchToken(token);
-			searchToken.setFieldName(redisFieldName);
+			searchToken.setFieldName(getFieldName);
 
+			//SearchToken 리스트에 추가
 			list.add(searchToken);
 
-			log.info("형태소 분리 결과 {}, {} {}, {} ", token.getBeginIndex(), token.getEndIndex(), token.getMorph(),
-				token.getPos());
+			log.info("====> 형태소 분리 {}, {} {}, {}, {}", token.getBeginIndex(), token.getEndIndex(), token.getMorph(),
+				token.getPos(), getFieldName);
 		}
 		searchNewAddress = builder.toString();
 		return list;
@@ -212,11 +228,11 @@ public class ElasticService {
 	/**
 	 * 단어가 주소여부 체크
 	 * @param morph
-	 * @param pos
 	 * @return
 	 */
-	public String isAddress(String morph, String pos) {
-		return redisService.getWordInfo(morph);
+	public String isAddress(String morph) throws IOException {
+		//txt 파일 메모리 에서 address, category 구분
+		return analyzerTest.isCategoryAddress(morph);
 	}
 
 }

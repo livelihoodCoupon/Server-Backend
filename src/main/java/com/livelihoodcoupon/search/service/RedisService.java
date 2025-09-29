@@ -44,7 +44,7 @@ public class RedisService {
 		hashOps.put(key, "field", field);
 		hashOps.put(key, "subfield", subfield);
 		hashOps.put(key, "parent", parent == null ? "" : parent);
-		log.info("Redis 저장: key={}, field={}, subfield={}, parent={}", key, field, subfield, parent);
+		//log.info("Redis 저장: key={}, field={}, subfield={}, parent={}", key, field, subfield, parent);
 	}
 
 	/**

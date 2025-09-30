@@ -22,11 +22,15 @@ import lombok.extern.slf4j.Slf4j;
  * <h3>주요 기능:</h3>
  * <ul>
  *   <li><b>CSV 배치 실행:</b> CSV 파일을 데이터베이스로 로드하는 배치 작업 실행</li>
+ *   <li><b>주차장 CSV 배치 실행:</b> 전국주차장정보표준데이터.csv를 DB에 적재</li>
+ *   <li><b>상태 확인:</b> 배치 시스템 초기화 여부 확인</li>
  * </ul>
  *
  * <h3>API 엔드포인트:</h3>
  * <ul>
- *   <li><code>POST /admin/batch/csv-to-db</code> - CSV 파일을 DB로 로드하는 배치 실행</li>
+ *   <li><code>POST /admin/batch/csv-to-db</code> - Place CSV → DB 배치 실행</li>
+ *   <li><code>POST /admin/batch/parking-csv-to-db</code> - ParkingLot CSV → DB 배치 실행</li>
+ *   <li><code>POST /admin/batch/status</code> - 배치 시스템 상태 확인</li>
  * </ul>
  */
 @Slf4j
@@ -38,6 +42,7 @@ public class BatchController {
 
 	private final JobLauncher jobLauncher;
 	private final Job placeCsvJob;
+	private final Job parkingLotCsvJob;
 
 	/**
 	 * CSV 파일을 데이터베이스로 로드하는 배치 작업을 실행합니다.
@@ -77,6 +82,40 @@ public class BatchController {
 			return ResponseEntity.internalServerError()
 				.body(CustomApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR,
 					"배치 작업 시작 중 오류가 발생했습니다: " + e.getMessage()));
+		}
+	}
+
+	/**
+	 * ParkingLot CSV(전국주차장정보표준데이터.csv)를 DB로 적재하는 배치 작업 실행 (비동기)
+	 */
+	@PostMapping("/parking-csv-to-db")
+	public ResponseEntity<CustomApiResponse<?>> runParkingCsvToDbBatch() {
+		try {
+			log.info("[Batch] ParkingLot CSV to DB 배치 작업 시작 요청됨");
+
+			new Thread(() -> {
+				try {
+					JobParameters jobParameters = new JobParametersBuilder()
+						.addString("JobID", String.valueOf(System.currentTimeMillis()))
+						.toJobParameters();
+
+					jobLauncher.run(parkingLotCsvJob, jobParameters);
+					log.info("[Batch] ParkingLot CSV to DB 배치 작업 완료됨");
+				} catch (Exception e) {
+					log.error("[Batch] ParkingLot CSV to DB 배치 작업 실행 중 오류 발생", e);
+				}
+			}).start();
+
+			return ResponseEntity.ok(
+				CustomApiResponse.success("ParkingLot CSV to DB 배치 작업이 백그라운드에서 시작되었습니다.")
+			);
+		} catch (Exception e) {
+			log.error("[Batch] ParkingLot CSV to DB 배치 작업 시작 중 오류 발생", e);
+			return ResponseEntity.internalServerError()
+				.body(CustomApiResponse.error(
+					ErrorCode.INTERNAL_SERVER_ERROR,
+					"배치 작업 시작 중 오류가 발생했습니다: " + e.getMessage()
+				));
 		}
 	}
 

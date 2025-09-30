@@ -68,10 +68,12 @@ GET /admin/collect/{regionName}
 ```
 
 **Path Parameters:**
+
 - `regionName` (string): 수집할 지역명
-  - 예: `서울특별시 종로구`, `경상남도 창원시 의창구`
+    - 예: `서울특별시 종로구`, `경상남도 창원시 의창구`
 
 **응답 예시:**
+
 ```json
 {
   "success": true,
@@ -139,7 +141,77 @@ GET /admin/health
 
 ## 클라이언트 API (`/api`)
 
-### 1. 장소 상세 정보 조회 API
+### 1. 장소 검색 API
+
+키워드와 위치 기반으로 소비쿠폰 사용 가능 장소를 검색합니다.
+
+```http
+GET /api/search
+```
+
+**Query Parameters:**
+
+- `keyword` (string): 검색 키워드 (예: "마트", "편의점", "카페")
+- `x` (double): 중심점 경도 (X 좌표)
+- `y` (double): 중심점 위도 (Y 좌표)
+- `radius` (integer, optional): 검색 반경 (미터 단위, 기본값: 2000)
+- `page` (integer, optional): 페이지 번호 (기본값: 1)
+- `size` (integer, optional): 페이지 크기 (기본값: 10, 최대: 100)
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "placeId": "1234567890",
+        "placeName": "롯데마트 종로점",
+        "categoryName": "대형마트",
+        "addressName": "서울특별시 종로구 청계천로 400",
+        "roadAddressName": "서울특별시 종로구 청계천로 400",
+        "phone": "02-1234-5678",
+        "x": "126.978652",
+        "y": "37.566826",
+        "placeUrl": "http://place.map.kakao.com/1234567890"
+      }
+    ],
+    "pageable": {
+      "pageNumber": 0,
+      "pageSize": 10,
+      "sort": {
+        "sorted": false,
+        "unsorted": true
+      }
+    },
+    "totalElements": 1,
+    "totalPages": 1,
+    "first": true,
+    "last": true,
+    "numberOfElements": 1
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+**에러 응답:**
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "C002",
+    "message": "검색 키워드가 필요합니다."
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+</br>
+
+### 2. 장소 상세 정보 조회 API
+
 특정 장소의 상세 정보를 조회합니다.
 
 ```http
@@ -147,9 +219,11 @@ GET /api/places/{placeId}
 ```
 
 **Path Parameters:**
+
 - `placeId` (string): 장소 ID
 
 **응답 예시:**
+
 ```json
 {
   "success": true,
@@ -170,28 +244,287 @@ GET /api/places/{placeId}
 
 </br>
 
+### 3. 길찾기 API
+
+출발지와 도착지 사이의 경로를 조회합니다. 하이브리드 시스템으로 카카오 API(자동차)와 OSRM(도보/자전거/대중교통)을 지원합니다.
+
+```http
+GET /api/routes/search
+```
+
+**Query Parameters:**
+
+- `startLng` (double, 필수): 출발지 경도 (한국 좌표 범위: 124.0 ~ 132.0)
+- `startLat` (double, 필수): 출발지 위도 (한국 좌표 범위: 33.0 ~ 39.0)
+- `endLng` (double, 필수): 도착지 경도 (한국 좌표 범위: 124.0 ~ 132.0)
+- `endLat` (double, 필수): 도착지 위도 (한국 좌표 범위: 33.0 ~ 39.0)
+- `routeType` (string, 선택): 경로 타입 (기본값: "driving")
+    - `driving`: 자동차 경로 (카카오 API 사용)
+    - `walking`: 도보 경로 (OSRM 사용)
+    - `cycling`: 자전거 경로 (OSRM 사용)
+    - `transit`: 대중교통 경로 (OSRM 사용)
+
+**요청 예시:**
+```bash
+curl -X GET "http://localhost:8080/api/routes/search?startLng=127.0276&startLat=37.4979&endLng=127.0286&endLat=37.4989&routeType=driving"
+```
+
+**응답 예시 (자동차 경로):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "coordinates": [
+      {"lng": 127.027591411983, "lat": 37.497886868699254},
+      {"lng": 127.02774914062023, "lat": 37.49793321971287}
+    ],
+    "totalDistance": 977.0,
+    "totalDuration": 419.0,
+    "routeType": "DRIVING",
+    "steps": [
+      {
+        "instruction": "출발지",
+        "distance": 0.0,
+        "duration": 0.0,
+        "startLocation": {"lng": 127.027591411983, "lat": 37.497886868699254},
+        "endLocation": {"lng": 127.027591411983, "lat": 37.497886868699254}
+      },
+      {
+        "instruction": "우회전",
+        "distance": 252.0,
+        "duration": 31.0,
+        "startLocation": {"lng": 127.03027259286037, "lat": 37.498692826801836},
+        "endLocation": {"lng": 127.03027259286037, "lat": 37.498692826801836}
+      }
+    ]
+  },
+  "timestamp": "2025-09-29T18:55:01.718578918"
+}
+```
+
+**응답 예시 (도보/자전거 경로):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "coordinates": [
+      {"lng": 127.02761, "lat": 37.49789},
+      {"lng": 127.0286, "lat": 37.49891}
+    ],
+    "totalDistance": 429.2,
+    "totalDuration": 61.6,
+    "routeType": "WALKING",
+    "steps": [
+      {
+        "instruction": null,
+        "distance": 11.7,
+        "duration": 5.6,
+        "startLocation": {"lng": 127.027606, "lat": 37.497887},
+        "endLocation": {"lng": 127.027606, "lat": 37.497887}
+      }
+    ]
+  },
+  "timestamp": "2025-09-29T18:56:00.471269293"
+}
+```
+
+**에러 응답:**
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "R006",
+    "message": "유효하지 않은 좌표입니다"
+  },
+  "timestamp": "2025-09-29T18:55:01.718578918"
+}
+```
+
+</br>
+
+### 4. 경로 제공자 목록 조회 API
+
+사용 가능한 경로 제공자 목록을 조회합니다.
+
+```http
+GET /api/routes/providers
+```
+
+**요청 예시:**
+```bash
+curl -X GET "http://localhost:8080/api/routes/providers"
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": ["KakaoNavi", "OSRM"],
+  "timestamp": "2025-09-29T18:55:01.718578918"
+}
+```
+
+**설명:**
+
+- `KakaoNavi`: 카카오내비 API를 사용하여 자동차 경로 제공
+- `OSRM`: Open Source Routing Machine을 사용하여 도보/자전거/대중교통 경로 제공
+
+### 에러 코드
+- `R001`: 지원하지 않는 경로 타입
+- `R002`: 경로 제공자 서비스가 일시적으로 사용할 수 없음
+- `R003`: 경로를 찾을 수 없음
+- `R004`: 카카오 API 서비스 오류가 발생했습니다
+- `R005`: OSRM 서비스 오류가 발생했습니다
+- `R006`: 유효하지 않은 좌표입니다
+
+</br>
+
+### 5. 길찾기 모니터링 API
+
+길찾기 API의 성능 및 통계 정보를 조회합니다.
+
+#### 5.1. API 호출 통계 조회
+
+```http
+GET /admin/routes/monitoring/stats
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "kakao": {
+      "totalCalls": 150,
+      "successCount": 145,
+      "failureCount": 5,
+      "successRate": 96.7
+    },
+    "osrm": {
+      "totalCalls": 200,
+      "successCount": 195,
+      "failureCount": 5,
+      "successRate": 97.5
+    },
+    "fallbackUsage": 3,
+    "availableProviders": [
+      "KakaoNavi",
+      "OSRM"
+    ]
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+#### 5.2. 제공자 헬스체크
+
+```http
+GET /admin/routes/monitoring/health
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "kakao": {
+      "status": "UP",
+      "message": "카카오 API 정상"
+    },
+    "osrm": {
+      "status": "UP",
+      "message": "OSRM 서버 정상"
+    },
+    "overall": "UP"
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+#### 5.3. 성능 메트릭 조회
+
+```http
+GET /admin/routes/monitoring/performance
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "kakao": {
+      "mean": 520.5,
+      "max": 1200.0,
+      "count": 150
+    },
+    "osrm": {
+      "mean": 25.3,
+      "max": 100.0,
+      "count": 200
+    },
+    "driving": {
+      "mean": 300.2,
+      "max": 800.0,
+      "count": 100
+    },
+    "walking": {
+      "mean": 15.8,
+      "max": 50.0,
+      "count": 80
+    }
+  },
+  "timestamp": "2025-09-22T12:00:00.000Z"
+}
+```
+
+</br>
+
 ## 에러 코드
 
 ### HTTP 상태 코드별 에러
 
-| HTTP 상태 | 에러 코드 | 설명 | 해결 방법 |
-|-----------|-----------|------|-----------|
-| `400` | `C001` | 잘못된 요청 | 요청 파라미터 형식 확인 |
-| `400` | `C002` | 잘못된 입력 값 | 입력 데이터 유효성 검사 |
-| `400` | `C003` | 잘못된 요청 파라미터 | 필수 파라미터 누락 여부 확인 |
-| `401` | `C004` | 인증 실패 | API 키 또는 인증 정보 확인 |
-| `403` | `C005` | 접근 거부 | 권한 확인 또는 관리자 문의 |
-| `404` | `C006` | URL을 찾을 수 없음 | 요청 URL 경로 확인 |
-| `404` | `C007` | 리소스를 찾을 수 없음 | 올바른 지역명 또는 장소 ID 확인 |
-| `429` | `C008` | 요청 한도 초과 | API 호출 제한 확인 후 재시도 |
-| `500` | `C009` | 서버 내부 오류 | 서버 로그 확인 또는 관리자 문의 |
+| HTTP 상태 | 에러 코드  | 설명           | 해결 방법               |
+|---------|--------|--------------|---------------------|
+| `400`   | `C001` | 잘못된 요청       | 요청 파라미터 형식 확인       |
+| `400`   | `C002` | 잘못된 입력 값     | 입력 데이터 유효성 검사       |
+| `400`   | `C003` | 잘못된 요청 파라미터  | 필수 파라미터 누락 여부 확인    |
+| `401`   | `C004` | 인증 실패        | API 키 또는 인증 정보 확인   |
+| `403`   | `C005` | 접근 거부        | 권한 확인 또는 관리자 문의     |
+| `404`   | `C006` | URL을 찾을 수 없음 | 요청 URL 경로 확인        |
+| `404`   | `C007` | 리소스를 찾을 수 없음 | 올바른 지역명 또는 장소 ID 확인 |
+| `429`   | `C008` | 요청 한도 초과     | API 호출 제한 확인 후 재시도  |
+| `500`   | `C009` | 서버 내부 오류     | 서버 로그 확인 또는 관리자 문의  |
 
 ### 카카오 API 관련 에러
 
-| 에러 유형 | 설명 | 해결 방법 |
-|-----------|------|-----------|
-| `KAKAO_API_ERROR` | 카카오 API 호출 실패 | API 키 확인 또는 카카오 API 상태 확인 |
-| `API_RATE_LIMIT` | 카카오 API 호출 제한 초과 | 호출 간격 조정 (현재 30ms 지연 적용) |
+| 에러 유형             | 설명               | 해결 방법                     |
+|-------------------|------------------|---------------------------|
+| `KAKAO_API_ERROR` | 카카오 API 호출 실패    | API 키 확인 또는 카카오 API 상태 확인 |
+| `API_RATE_LIMIT`  | 카카오 API 호출 제한 초과 | 호출 간격 조정 (현재 30ms 지연 적용)  |
+
+### OSRM API 관련 에러
+
+| 에러 유형                    | 설명            | 해결 방법                                             |
+|--------------------------|---------------|---------------------------------------------------|
+| `OSRM_API_ERROR`         | OSRM 서버 호출 실패 | OSRM 서버 상태 확인 또는 네트워크 연결 확인                       |
+| `UNSUPPORTED_ROUTE_TYPE` | 지원하지 않는 경로 타입 | 올바른 경로 타입 사용 (DRIVING, WALKING, CYCLING, TRANSIT) |
+
+### 길찾기 API 관련 에러
+
+| 에러 코드  | 설명               | 해결 방법                                             |
+|--------|------------------|---------------------------------------------------|
+| `R001` | 지원하지 않는 경로 타입    | 올바른 경로 타입 사용 (driving, walking, cycling, transit) |
+| `R002` | 경로 제공자 서비스 일시 중단 | 잠시 후 재시도 또는 관리자 문의                                |
+| `R003` | 경로를 찾을 수 없음      | 출발지/도착지 좌표 확인 또는 다른 경로 타입 시도                      |
+| `R004` | 카카오 API 서비스 오류   | 카카오 API 상태 확인 또는 관리자 문의                           |
+| `R005` | OSRM 서비스 오류      | OSRM 서버 상태 확인 또는 관리자 문의                           |
 
 </br>
 
@@ -224,11 +557,13 @@ GET /api/places/{placeId}
 ## 관련 링크
 
 - [카카오 로컬 API 문서](https://developers.kakao.com/docs/latest/ko/local/dev-guide)
+- [카카오내비 API 문서](https://developers.kakao.com/docs/latest/ko/local/dev-guide#search-directions)
+- [OSRM 공식 문서](https://project-osrm.org/docs/v5.24.0/api/)
 - [Spring Boot 공식 문서](https://spring.io/projects/spring-boot)
 - [PostGIS 공식 문서](https://postgis.net/documentation/)
 
 ---
 
-**마지막 업데이트**: 2025-09-22  
-**문서 버전**: 1.0.0
+**마지막 업데이트**: 2025-09-30  
+**문서 버전**: 1.1.1
 

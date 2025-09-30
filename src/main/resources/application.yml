@@ -35,7 +35,7 @@ osrm:
     car: ${OSRM_CAR_URL:http://localhost:5004}
     foot: ${OSRM_FOOT_URL:http://localhost:5001}
     bike: ${OSRM_BIKE_URL:http://localhost:5002}
-    transit: ${OSRM_TRANSIT_URL:http://localhost:5003}
+    transit: ${OSRM_FOOT_URL:http://localhost:5001}  # transit은 현재는 foot과 동일한 결과 반환
 
 # Actuator 엔드포인트 구성
 management:

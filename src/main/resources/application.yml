@@ -27,9 +27,6 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
-  batch:
-    job:
-      name: ${JOB_NAME:parkingLotCsvLoadJob}
 
 # Actuator 엔드포인트 구성
 management:

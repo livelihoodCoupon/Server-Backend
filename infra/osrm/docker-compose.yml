@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # OSRM 서버 (자동차 경로)
   osrm-car:
@@ -9,7 +7,7 @@ services:
       - "5004:5000"
     volumes:
       - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm.car
+    command: osrm-routed --algorithm mld /data/south-korea-latest.car.osrm
     environment:
       - TZ=Asia/Seoul
     networks:
@@ -24,7 +22,7 @@ services:
       - "5001:5000"
     volumes:
       - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
     environment:
       - TZ=Asia/Seoul
     networks:
@@ -39,22 +37,7 @@ services:
       - "5002:5000"
     volumes:
       - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
-    environment:
-      - TZ=Asia/Seoul
-    networks:
-      - livelihoodCoupon-net
-    restart: unless-stopped
-
-  # OSRM 서버 (대중교통 경로)
-  osrm-transit:
-    image: osrm/osrm-backend:latest
-    container_name: livelihoodCoupon-osrm-transit-1
-    ports:
-      - "5003:5000"
-    volumes:
-      - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.bike.osrm
     environment:
       - TZ=Asia/Seoul
     networks:

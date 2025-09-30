@@ -23,7 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
 import com.livelihoodcoupon.search.repository.SearchRepository;

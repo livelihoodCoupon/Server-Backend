@@ -2,6 +2,8 @@ package com.livelihoodcoupon.batch;
 
 import java.io.IOException;
 
+import jakarta.persistence.EntityManagerFactory;
+
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
@@ -32,7 +34,6 @@ import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.place.repository.PlaceRepository;
 import com.livelihoodcoupon.place.service.PlaceIdRedisCacheService;
 
-import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

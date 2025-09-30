@@ -20,12 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.service.KakaoApiService;
-import com.livelihoodcoupon.search.dto.SearchRequest;
-import com.livelihoodcoupon.search.dto.SearchResponse;
-import com.livelihoodcoupon.collector.service.KakaoApiService;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;

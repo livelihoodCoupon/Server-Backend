@@ -1,6 +1,7 @@
 package com.livelihoodcoupon.search.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -108,11 +109,6 @@ public class SearchService {
 				request.setLat(coordinate.getLat());
 				request.setLng(coordinate.getLng());
 				log.info("Mono 검색어 기준 좌표 위도: {}, 경도: {}", coordinate.getLat(), coordinate.getLng());
-				request.setLat(coordinate.latitude);
-				request.setLng(coordinate.longitude);
-				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress,
-					coordinate.latitude, coordinate.longitude);
-
 				return Mono.just(request);
 			})
 			.map(ResponseEntity::ok)

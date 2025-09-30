@@ -70,7 +70,7 @@ public class Place extends BaseEntity {
 
 	@Column(name = "category_level3")
 	private String categoryLevel3;
-	
+
 	@Column(name = "category_level4")
 	private String categoryLevel4;
 

@@ -13,7 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
@@ -139,13 +140,13 @@ public class ElasticService {
 	public Mono<ResponseEntity<SearchRequestDto>> handleAddressPosition(String searchNewAddress,
 		SearchRequestDto request) {
 		return kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
-			.defaultIfEmpty(new KakaoApiService.Coordinate(0, 0))
+			.defaultIfEmpty(Coordinate.builder().lng(0).lat(0).build())
 			.flatMap(coordinate -> {
 				// request에 좌표 세팅
-				request.setLat(coordinate.latitude);
-				request.setLng(coordinate.longitude);
-				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress, coordinate.latitude,
-					coordinate.longitude);
+				request.setLat(coordinate.getLat());
+				request.setLng(coordinate.getLng());
+				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress, coordinate.getLat(),
+					coordinate.getLng());
 				return Mono.just(request);
 			})
 			.map(r -> ResponseEntity.ok(r))

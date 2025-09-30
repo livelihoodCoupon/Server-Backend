@@ -1,0 +1,49 @@
+services:
+  # OSRM 서버 (자동차 경로)
+  osrm-car:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-car-1
+    ports:
+      - "5004:5000"
+    volumes:
+      - ./data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.car.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+  # OSRM 서버 (도보 경로)
+  osrm-foot:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-foot-1
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+  # OSRM 서버 (자전거 경로)
+  osrm-bike:
+    image: osrm/osrm-backend:latest
+    container_name: livelihoodCoupon-osrm-bike-1
+    ports:
+      - "5002:5000"
+    volumes:
+      - ./data:/data
+    command: osrm-routed --algorithm mld /data/south-korea-latest.bike.osrm
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - livelihoodCoupon-net
+    restart: unless-stopped
+
+networks:
+  livelihoodCoupon-net:
+    external: true

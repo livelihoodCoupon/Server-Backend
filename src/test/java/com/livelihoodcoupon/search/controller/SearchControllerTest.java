@@ -39,8 +39,7 @@ import kr.co.shineware.nlp.komoran.core.Komoran;
 @AutoConfigureMockMvc(addFilters = false) // Security 필터 비활성화
 public class SearchControllerTest {
 
-	List<PlaceEntity> places = null;
-
+	List<Place> places = null;
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -199,5 +198,4 @@ public class SearchControllerTest {
 			.andExpect(
 				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
-
 }

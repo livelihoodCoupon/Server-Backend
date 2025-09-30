@@ -30,10 +30,11 @@ else
   echo "Docker network '${NETWORK_NAME}' exists."
 fi
 
-# ── 4️⃣ compose 디렉토리 목록: 부가 인프라 서비스 병렬 실행 (ELK, Monitoring) ──
+# ── 4️⃣ compose 디렉토리 목록: 부가 인프라 서비스 병렬 실행 (ELK, Monitoring, OSRM) ──
 COMPOSE_DIRS=(
   "${INFRA_BASE_DIR}/elk"
   "${INFRA_BASE_DIR}/monitoring"
+  "${INFRA_BASE_DIR}/osrm"
 )
 
 

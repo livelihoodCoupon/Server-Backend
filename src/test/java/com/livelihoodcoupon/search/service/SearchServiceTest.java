@@ -20,6 +20,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
+import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.search.dto.SearchRequest;
+import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.collector.service.KakaoApiService;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
@@ -83,7 +88,7 @@ class SearchServiceTest {
 
 		// KakaoMapService mock
 		when(kakaoApiService.getCoordinatesFromAddress(anyString()))
-			.thenReturn(Mono.just(new KakaoApiService.Coordinate(37.57104033689386, 127.0019782463416)));
+			.thenReturn(Mono.just(new Coordinate(37.57104033689386, 127.0019782463416)));
 
 		// Specification mocking
 		Specification<Place> spec = mock(Specification.class);

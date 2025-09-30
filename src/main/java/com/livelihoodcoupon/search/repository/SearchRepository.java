@@ -7,6 +7,5 @@ import org.springframework.stereotype.Repository;
 import com.livelihoodcoupon.place.entity.Place;
 
 @Repository
-public interface SearchRepository
-	extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> { // Changed from PlaceEntity
+public interface SearchRepository extends JpaRepository<Place, Long>, JpaSpecificationExecutor<Place> {
 }

@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Predicate;
-
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +11,8 @@ import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchToken;
 
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,7 +36,7 @@ public class QueryService {
 		return (root, query, cb) -> {
 			List<Predicate> predicates = new ArrayList<>();
 
-			//자연어검색 조건 추가 - 주소, 카테고리, 상가명
+			// 자연어검색 조건 추가 - 주소, 카테고리, 상가명
 			for (SearchToken token : resultList) {
 				String word = token.getMorph();
 				String field = (token.getFieldName() == null ? "placeName" : token.getFieldName());
@@ -100,4 +99,3 @@ public class QueryService {
 		};
 	}
 }
-

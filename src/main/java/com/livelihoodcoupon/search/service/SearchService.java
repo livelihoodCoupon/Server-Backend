@@ -1,7 +1,6 @@
 package com.livelihoodcoupon.search.service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,7 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
@@ -102,9 +102,12 @@ public class SearchService {
 		SearchRequestDto request) {
 
 		return kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
-			.defaultIfEmpty(new KakaoApiService.Coordinate(0, 0))
+			.defaultIfEmpty(Coordinate.builder().lng(0).lat(0).build())
 			.flatMap(coordinate -> {
 				// request에 좌표 세팅
+				request.setLat(coordinate.getLat());
+				request.setLng(coordinate.getLng());
+				log.info("Mono 검색어 기준 좌표 위도: {}, 경도: {}", coordinate.getLat(), coordinate.getLng());
 				request.setLat(coordinate.latitude);
 				request.setLng(coordinate.longitude);
 				log.info("엘라스틱 서치 Mono 검색어 : {},  기준 좌표 위도: {}, 경도: {}", searchNewAddress,
@@ -112,7 +115,7 @@ public class SearchService {
 
 				return Mono.just(request);
 			})
-			.map(r -> ResponseEntity.ok(r))
+			.map(ResponseEntity::ok)
 			.onErrorResume(e -> {
 				log.error("Mono 좌표 검색 중 오류 발생", e);
 				return Mono.just(ResponseEntity.ok(request));

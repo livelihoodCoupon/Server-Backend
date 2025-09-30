@@ -17,14 +17,14 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.livelihoodcoupon.collector.dto.KakaoMeta;
-import com.livelihoodcoupon.collector.dto.KakaoPlace;
-import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
 import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
+import com.livelihoodcoupon.common.dto.KakaoMeta;
+import com.livelihoodcoupon.common.dto.KakaoPlace;
+import com.livelihoodcoupon.common.dto.KakaoResponse;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 
 @ExtendWith(MockitoExtension.class)
 class CouponDataCollectorTest {
@@ -43,21 +43,19 @@ class CouponDataCollectorTest {
 	private CsvExportService csvExportService;
 	@Mock
 	private GeoJsonExportService geoJsonExportService;
-	@Spy
-	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private RegionData testRegion;
 
 	@BeforeEach
 	void setUp() {
 		// 테스트에 사용할 기본 지역 데이터 설정
-		// 폴리곤을 2048m보다 크게 만들어, 기본 격자 크기(512m)를 사용하도록 유도
-		// 0.03도는 약 3.3km에 해당
+		// 폴리곤을 10000m보다 크게 만들어, 기본 격자 크기(512m)를 사용하도록 유도
+		// 0.1도는 약 11.1km에 해당
 		List<List<Double>> polygonRing = List.of(
 			List.of(127.0, 37.0),
-			List.of(127.03, 37.0),
-			List.of(127.03, 37.03),
-			List.of(127.0, 37.03),
+			List.of(127.1, 37.0),
+			List.of(127.1, 37.1),
+			List.of(127.0, 37.1),
 			List.of(127.0, 37.0) // Polygon은 시작점과 끝점이 같아야 합니다.
 		);
 		List<List<List<Double>>> polygon = List.of(polygonRing);
@@ -77,7 +75,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("신규 지역의 격자가 [일반 지역]일 경우, COMPLETED로 상태를 저장해야 한다")
-	void collectForSingleRegion_whenCellIsNormal_savesAsCompleted() throws Exception {
+	void collectForSingleRegion_whenCellIsNormal_savesAsCompleted() {
 		// given
 		// API가 "일반 지역" 응답을 반환하도록 설정
 		KakaoResponse normalResponse = mock(KakaoResponse.class);
@@ -110,7 +108,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("신규 지역의 격자가 [밀집 지역]일 경우, SUBDIVIDED로 상태를 저장해야 한다")
-	void collectForSingleRegion_whenCellIsDense_savesAsSubdivided() throws Exception {
+	void collectForSingleRegion_whenCellIsDense_savesAsSubdivided() {
 		// given
 		// 512m 격자는 "밀집 지역"으로, 하위 256m 격자는 "일반 지역"으로 응답하도록 설정
 		KakaoResponse denseResponse = mock(KakaoResponse.class, "dense");
@@ -154,7 +152,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("SUBDIVIDED로 기록된 격자는 API 호출 없이 하위 탐색을 수행해야 한다")
-	void collectForSingleRegion_whenGridIsSubdivided_resumesFromNextLevel() throws Exception {
+	void collectForSingleRegion_whenGridIsSubdivided_resumesFromNextLevel() {
 		// given
 		// 512m 격자는 SUBDIVIDED로, 하위 256m 격자는 신규 격자로 설정
 		ScannedGrid subdividedGrid = ScannedGrid.builder().status(ScannedGrid.GridStatus.SUBDIVIDED).build();

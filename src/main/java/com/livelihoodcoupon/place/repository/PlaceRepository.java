@@ -27,4 +27,11 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
 	 * @return 조회된 Place 엔티티 (Optional)
 	 */
 	Optional<Place> findByPlaceId(String placeId);
+
+	/**
+	 * 카카오 장소 ID가 데이터베이스에 존재하는지 확인합니다.
+	 * @param placeId 확인할 카카오 장소 ID
+	 * @return 존재 여부 (boolean)
+	 */
+	boolean existsByPlaceId(String placeId);
 }

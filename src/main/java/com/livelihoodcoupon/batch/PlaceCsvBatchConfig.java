@@ -2,8 +2,6 @@ package com.livelihoodcoupon.batch;
 
 import java.io.IOException;
 
-import jakarta.persistence.EntityManagerFactory;
-
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
@@ -32,8 +30,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.place.repository.PlaceRepository;
-import com.livelihoodcoupon.place.service.PlaceIdCacheService;
+import com.livelihoodcoupon.place.service.PlaceIdRedisCacheService;
 
+import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,7 +47,7 @@ public class PlaceCsvBatchConfig {
 	private final EntityManagerFactory entityManagerFactory;
 	private final ResourcePatternResolver resourcePatternResolver; // ResourcePatternResolver 주입
 	private final PlaceRepository placeRepository; // 중복 확인을 위한 PlaceRepository 주입
-	private final PlaceIdCacheService placeIdCacheService; // PlaceIdCacheService 주입
+	private final PlaceIdRedisCacheService placeIdRedisCacheService; // PlaceIdRedisCacheService 주입
 
 	@Bean
 	public Job placeCsvJob() {
@@ -113,13 +112,13 @@ public class PlaceCsvBatchConfig {
 	@Bean
 	public ItemProcessor<PlaceCsvDto, Place> placeCsvProcessor() {
 		return item -> {
-			// 인메모리 캐시를 사용하여 placeId 중복 확인
-			if (placeIdCacheService.contains(item.getPlaceId())) {
-				log.debug("중복된 placeId (캐시에서): {} 건너뜀", item.getPlaceId());
-				return null; // 캐시에 이미 존재하는 아이템은 건너뜀
+			// Redis 캐시를 사용하여 placeId 중복 확인
+			if (placeIdRedisCacheService.contains(item.getPlaceId())) {
+				log.debug("중복된 placeId (Redis 캐시에서): {} 건너뜀", item.getPlaceId());
+				return null; // Redis 캐시에 이미 존재하는 아이템은 건너뜀
 			}
-			// 새로운 아이템인 경우 캐시에 추가 (현재 배치 내 중복 처리용)
-			placeIdCacheService.add(item.getPlaceId());
+			// 새로운 아이템인 경우 Redis 캐시에 추가
+			placeIdRedisCacheService.add(item.getPlaceId());
 			GeometryFactory geometryFactory = new GeometryFactory();
 			WKTReader wktReader = new WKTReader(geometryFactory);
 			Point point = null;

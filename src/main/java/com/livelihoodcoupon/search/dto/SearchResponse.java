@@ -1,6 +1,6 @@
 package com.livelihoodcoupon.search.dto;
 
-import com.livelihoodcoupon.place.entity.Place; // Changed from PlaceEntity
+import com.livelihoodcoupon.place.entity.Place;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

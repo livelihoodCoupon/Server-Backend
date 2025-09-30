@@ -13,8 +13,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import jakarta.annotation.PreDestroy;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CachePut;
@@ -23,15 +21,17 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import com.livelihoodcoupon.collector.dto.KakaoPlace;
-import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
 import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
+import com.livelihoodcoupon.common.dto.KakaoPlace;
+import com.livelihoodcoupon.common.dto.KakaoResponse;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -42,7 +42,7 @@ public class CouponDataCollector {
 	private static final Logger log = LoggerFactory.getLogger(CouponDataCollector.class);
 	private static final int INITIAL_GRID_RADIUS_METERS = 512;
 	private static final int SMALL_REGION_GRID_RADIUS_METERS = 256;
-	private static final int SMALL_REGION_THRESHOLD_METERS = 10000; // 10km
+	private static final int SMALL_REGION_THRESHOLD_METERS = 7500; // 7.5km
 	private static final int MAX_PAGE_PER_QUERY = 45;
 	private static final int DENSE_AREA_THRESHOLD = 45;
 	private static final int MAX_RECURSION_DEPTH = 9;
@@ -102,6 +102,7 @@ public class CouponDataCollector {
 	public void collectForSingleRegion(RegionData region) {
 		long startTime = System.currentTimeMillis();
 
+		// 1. 지역 폴리곤 유효성 검사
 		List<List<List<List<Double>>>> multiPolygon = region.getPolygons();
 		if (multiPolygon == null || multiPolygon.isEmpty()) {
 			log.warn("    - 경고: [ {} ] 지역에 폴리곤(polygon)이 정의되지 않아 건너뜁니다.", region.getName());

@@ -13,7 +13,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.livelihoodcoupon.collector.service.KakaoApiService;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
@@ -102,15 +103,15 @@ public class SearchService {
 		log.info("Mono 주소검색 {}", searchNewAddress);
 
 		return kakaoApiService.getCoordinatesFromAddress(searchNewAddress)
-			.defaultIfEmpty(new KakaoApiService.Coordinate(0, 0))
+			.defaultIfEmpty(Coordinate.builder().lng(0).lat(0).build())
 			.flatMap(coordinate -> {
 				// request에 좌표 세팅
-				request.setLat(coordinate.latitude);
-				request.setLng(coordinate.longitude);
-				log.info("Mono 검색어 기준 좌표 위도: {}, 경도: {}", coordinate.latitude, coordinate.longitude);
+				request.setLat(coordinate.getLat());
+				request.setLng(coordinate.getLng());
+				log.info("Mono 검색어 기준 좌표 위도: {}, 경도: {}", coordinate.getLat(), coordinate.getLng());
 				return Mono.just(request);
 			})
-			.map(r -> ResponseEntity.ok(r))
+			.map(ResponseEntity::ok)
 			.onErrorResume(e -> {
 				log.error("Mono 좌표 검색 중 오류 발생", e);
 				return Mono.just(ResponseEntity.ok(request));

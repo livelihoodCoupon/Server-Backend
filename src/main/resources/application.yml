@@ -28,10 +28,19 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+# OSRM 설정
+osrm:
+  # OSRM 서버별 설정
+  servers:
+    car: ${OSRM_CAR_URL:http://localhost:5004}
+    foot: ${OSRM_FOOT_URL:http://localhost:5001}
+    bike: ${OSRM_BIKE_URL:http://localhost:5002}
+    transit: ${OSRM_TRANSIT_URL:http://localhost:5003}
+
 # Actuator 엔드포인트 구성
 management:
   server:
-  #    port: 9091 # 관리용 포트 분리
+  # port: 9091 # 관리용 포트 분리
   endpoints:
     web:
       exposure:

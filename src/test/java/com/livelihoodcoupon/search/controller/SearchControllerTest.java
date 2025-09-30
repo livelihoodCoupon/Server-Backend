@@ -22,7 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import com.livelihoodcoupon.collector.entity.PlaceEntity;
+import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.SearchRequest;
 import com.livelihoodcoupon.search.dto.SearchResponse;
 import com.livelihoodcoupon.search.repository.SearchRepository;
@@ -33,7 +33,7 @@ import com.livelihoodcoupon.search.service.SearchService;
 @WebMvcTest(controllers = SearchController.class)
 public class SearchControllerTest {
 
-	List<PlaceEntity> places = null;
+	List<Place> places = null;
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -180,17 +180,4 @@ public class SearchControllerTest {
 			.andExpect(
 				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
-
-	/*
-	@Test
-	@DisplayName("400 검색 실패 - query 파라미터 누락")
-	void testSearch_queryMissing() throws Exception {
-		ResultActions resultActions =
-			mockMvc.perform(get("/api/search"))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.error.message").value("query: 검색어는 필수입니다."))
-				.andDo(print());
-	}
-	*/
-
 }

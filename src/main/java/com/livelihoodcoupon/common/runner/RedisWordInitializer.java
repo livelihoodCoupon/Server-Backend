@@ -22,12 +22,9 @@ public class RedisWordInitializer implements ApplicationRunner {
 
 	@Override
 	public void run(ApplicationArguments args) throws IOException {
-
-		log.info("Redis 단어 등록 시작111");
-		//redisWordRegister.wordRegister();
-
+		log.info("Redis 단어 등록 시작");
 		redisWordRegister.fileWordRegister("address");
 		redisWordRegister.fileWordRegister("category");
-		log.info("Redis 단어 등록 종료222");
+		log.info("Redis 단어 등록 종료");
 	}
 }

@@ -36,7 +36,6 @@ public class ElasticSearchConfig {
 		// 혹시 여기서 세팅 안되어 있으면 추가 설정 가능 (선택)
 		this.objectMapper.registerModule(new JavaTimeModule());
 		this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-		System.out.println("===========> Registered modules: " + objectMapper.getRegisteredModuleIds());
 	}
 
 	@Bean

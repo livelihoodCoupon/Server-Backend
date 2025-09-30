@@ -77,7 +77,7 @@ public class AnalyzerTest {
 	public String getAddress(List<NoriToken> noriTokenList) {
 		StringBuilder builder = new StringBuilder();
 		for (NoriToken token : noriTokenList) {
-			if (Objects.equals(token.getFieldName(), "load_address")) {
+			if (Objects.equals(token.getFieldName(), "address")) {
 				builder.append(token.getToken()).append(" ");
 			}
 		}

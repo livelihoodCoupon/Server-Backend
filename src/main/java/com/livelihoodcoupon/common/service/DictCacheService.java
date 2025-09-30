@@ -15,18 +15,30 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 public class DictCacheService {
-	private Set<String> addressDict = new HashSet<>();
-	private Set<String> categoryDict = new HashSet<>();
+	private Set<String> addressDict;
+	private Set<String> categoryDict;
+
+	// 테스트용 생성자
+	public DictCacheService(Set<String> addressDict, Set<String> categoryDict) {
+		this.addressDict = addressDict;
+		this.categoryDict = categoryDict;
+	}
+
+	public DictCacheService() {
+
+	}
 
 	@PostConstruct
 	public void init() {
-		log.info("==============> DictCacheService init ");
-		addressDict = loadDictFromFile("dict/address_dict.txt");
-		categoryDict = loadDictFromFile("dict/category_dict.txt");
+		if (addressDict == null) {
+			addressDict = loadDictFromFile("dict/address_dict.txt");
+		}
+		if (categoryDict == null) {
+			categoryDict = loadDictFromFile("dict/category_dict.txt");
+		}
 	}
 
 	private Set<String> loadDictFromFile(String filename) {
-		log.info("==============> DictCacheService loadDictFromFile ");
 		Set<String> dict = new HashSet<>();
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(
 			Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(filename))))) {
@@ -41,12 +53,10 @@ public class DictCacheService {
 	}
 
 	public boolean containsAddress(String word) {
-		log.info("==============> DictCacheService containsAddress ");
 		return addressDict.contains(word);
 	}
 
 	public boolean containsCategory(String word) {
-		log.info("==============> DictCacheService containsCategory ");
 		return categoryDict.contains(word);
 	}
 }

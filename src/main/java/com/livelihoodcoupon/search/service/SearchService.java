@@ -170,8 +170,7 @@ public class SearchService {
 			}
 
 			//Token을 SearchToken으로 통합하기
-			SearchToken searchToken = new SearchToken(token);
-			searchToken.setFieldName(redisFieldName);
+			SearchToken searchToken = new SearchToken(redisFieldName, token);
 
 			list.add(searchToken);
 

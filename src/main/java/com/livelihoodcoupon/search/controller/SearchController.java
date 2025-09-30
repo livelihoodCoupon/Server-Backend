@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -57,7 +58,7 @@ public class SearchController {
 	}
 
 	/**
-	 * 엘라스틱 이용한 호출
+	 * 엘라스틱 이용한 목록 호출
 	 * 검색버튼 클릭시 위도, 경도 받아오고 api를 호출해야한다.
 	 * **/
 	@GetMapping("/search2")
@@ -73,6 +74,18 @@ public class SearchController {
 		PageResponse<PlaceSearchResponseDto> searchResponse = new PageResponse<>(pageList, pageSize);
 
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
+	}
+
+	/**
+	 * 엘라스틱 이용한 내용호출
+	 * 검색버튼 클릭시 위도, 경도 받아오고 api를 호출해야한다.
+	 * **/
+	@GetMapping("/search2/detail/{id}")
+	public ResponseEntity<CustomApiResponse<PlaceSearchResponseDto>> searchElasticDetail(
+		@Valid @PathVariable String id, SearchRequestDto request) throws IOException {
+
+		PlaceSearchResponseDto dto = elasticService.elasticSearchDetail(id, request);
+		return ResponseEntity.ok().body(CustomApiResponse.success(dto));
 	}
 
 	/**

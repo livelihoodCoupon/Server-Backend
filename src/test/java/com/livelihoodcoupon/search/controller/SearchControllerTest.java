@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -26,14 +27,20 @@ import com.livelihoodcoupon.collector.entity.PlaceEntity;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
 import com.livelihoodcoupon.search.repository.SearchRepository;
+import com.livelihoodcoupon.search.service.ElasticPlaceService;
+import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
 
+import kr.co.shineware.nlp.komoran.core.Komoran;
+
 @DisplayName("Search 통합테스트")
-@WebMvcTest(controllers = SearchController.class)
+@WebMvcTest(SearchController.class)
+@AutoConfigureMockMvc(addFilters = false) // Security 필터 비활성화
 public class SearchControllerTest {
 
 	List<PlaceEntity> places = null;
+
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -41,13 +48,25 @@ public class SearchControllerTest {
 	private SearchService searchService;
 
 	@MockitoBean
+	private ElasticService elasticService;
+
+	@MockitoBean
 	private RedisWordRegister redisWordRegister;
 
 	@MockitoBean
 	private SearchRepository searchRepository;
 
+	@MockitoBean
+	private ElasticPlaceService elasticPlaceService;
+
+	private Komoran komoran; // ElasticService의 의존성 해결
+	private SearchService search; // Controller 의존성 Mock
+	private SearchController searchController;
+
 	@BeforeEach
 	void setUp() {
+		elasticService = mock(ElasticService.class); // Komoran 필요 없음
+		searchController = new SearchController(search, elasticService);
 	}
 
 	@Test
@@ -82,8 +101,8 @@ public class SearchControllerTest {
 				.param("query", query)
 		);
 
-		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
-		System.out.println("API 응답 내용: " + responseContent);
+		//String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		//System.out.println("API 응답 내용: " + responseContent);
 
 		//then
 		resultActions.andExpect(status().isOk())
@@ -180,17 +199,5 @@ public class SearchControllerTest {
 			.andExpect(
 				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
-
-	/*
-	@Test
-	@DisplayName("400 검색 실패 - query 파라미터 누락")
-	void testSearch_queryMissing() throws Exception {
-		ResultActions resultActions =
-			mockMvc.perform(get("/api/search"))
-				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.error.message").value("query: 검색어는 필수입니다."))
-				.andDo(print());
-	}
-	*/
 
 }

@@ -23,6 +23,9 @@ public class PlaceSearchResponseDto {
 	//@Schema(description = "도로명주소", example = "서울시 종로구 종로대로 21")
 	private String roadAddress;
 
+	//@Schema(description = "동주소", example = "종로동")
+	private String roadAddressDong;
+
 	//@Schema(description = "지번주소", example = "서울시 종로구 종로동 43")
 	private String lotAddress;
 
@@ -50,6 +53,7 @@ public class PlaceSearchResponseDto {
 			place.getPlaceId(),
 			place.getPlaceName(),
 			place.getRoadAddress(),
+			place.getRoadAddressDong(),
 			place.getLotAddress(),
 			place.getLocation().getLat(), // Changed to use Place.getLocation()
 			place.getLocation().getLon(), // Changed to use Place.getLocation()

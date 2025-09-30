@@ -67,16 +67,16 @@ class SearchServiceTest {
 
 		List<SearchToken> mockTokens = new ArrayList<>();
 
-		SearchToken searchToken1 = new SearchToken(new Token("서울시", "NNP", 0, 3));
-		searchToken1.setFieldName("address");
+		SearchToken searchToken1 = new SearchToken("address",
+			new Token("서울시", "NNP", 0, 3));
 		mockTokens.add(searchToken1);
 
-		SearchToken searchToken2 = new SearchToken(new Token("종로구", "NNP", 4, 6));
-		searchToken2.setFieldName("address");
+		SearchToken searchToken2 = new SearchToken("address",
+			new Token("종로구", "NNP", 4, 6));
 		mockTokens.add(searchToken2);
 
-		SearchToken searchToken3 = new SearchToken(new Token("카페", "NNG", 8, 10));
-		searchToken3.setFieldName("category");
+		SearchToken searchToken3 = new SearchToken("category",
+			new Token("카페", "NNG", 8, 10));
 		mockTokens.add(searchToken3);
 
 		when(redisService.getWordInfo(anyString())).thenReturn("address");  // Mock Redis 서비스

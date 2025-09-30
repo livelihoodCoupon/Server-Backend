@@ -37,16 +37,14 @@ public class ElasticService {
 	private final ElasticPlaceService elasticPlaceService;
 	private final SearchService searchService;
 	private final KakaoApiService kakaoApiService;
-	private final RedisService redisService;
-	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 	private final AnalyzerTest analyzerTest;
+	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 
 	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
-		KakaoApiService kakaoApiService, RedisService redisService, AnalyzerTest analyzerTest) {
+		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
-		this.redisService = redisService;
 		this.analyzerTest = analyzerTest;
 	}
 
@@ -63,6 +61,18 @@ public class ElasticService {
 	}
 
 	/**
+	 * 엘라스틱 서치 상세내용
+	 */
+	public PlaceSearchResponseDto elasticSearchDetail(String id, SearchRequestDto dto) throws
+		IOException {
+		PlaceDocument doc = elasticPlaceService.getPlace(String.valueOf(id));
+		//거리계산
+		double distance = searchService.calculateDistance(dto.getLat(), dto.getLng(),
+			doc.getLocation().getLat(), doc.getLocation().getLon());
+		return PlaceSearchResponseDto.fromEntity(doc, distance);
+	}
+
+	/**
 	 * 엘라스틱 서치
 	 * @param dto
 	 * @param pageSize
@@ -73,13 +83,8 @@ public class ElasticService {
 	public Page<PlaceSearchResponseDto> elasticSearch(SearchRequestDto dto, int pageSize, int maxRecordSize) throws
 		IOException {
 		String query = dto.getQuery();
-
 		//코모란 자연어 형태소 분리
 		List<SearchToken> resultList = analysisChat(query);
-		//nori 단어분리
-		//List<NoriToken> resultNori = noriAnalyzerTest.analyzeText(query);
-		//분리된 단어들에서 주소가져오기
-		//String searchFullAddress = noriAnalyzerTest.getAddress(resultNori);
 
 		//검색어에 주소가 있을 경우 새로운 위치 가져오기
 		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
@@ -88,13 +93,6 @@ public class ElasticService {
 			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
 		}
 
-/*
-		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
-		if (searchFullAddress != null && !searchFullAddress.isEmpty()) {
-			SearchRequestDto result = handleAddressPosition(searchFullAddress, dto).block().getBody();
-			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
-		}
-*/
 		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
 		double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
 		double refLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
@@ -110,7 +108,7 @@ public class ElasticService {
 			.map(hit -> hit.source())
 			.map(place -> {
 				// 각 Place에 대해 거리 계산
-				return toSearchPositionDto(place, refLat, refLng);
+				return toSearchPosition(place, refLat, refLng);
 			}).collect(Collectors.toList());
 
 		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0; //null체크
@@ -120,13 +118,13 @@ public class ElasticService {
 	}
 
 	/**
-	 * lsit에 현재위치부터 목적지까지 거리계산해서 넣기
+	 * 검색한 위치해서 상가 위치까지 거리계산
 	 * @param doc
 	 * @param refLat
 	 * @param refLng
 	 * @return
 	 */
-	public PlaceSearchResponseDto toSearchPositionDto(PlaceDocument doc, double refLat, double refLng) {
+	public PlaceSearchResponseDto toSearchPosition(PlaceDocument doc, double refLat, double refLng) {
 		double distance = searchService.calculateDistance(refLat, refLng,
 			doc.getLocation().getLat(), doc.getLocation().getLon());
 		return PlaceSearchResponseDto.fromEntity(doc, distance);
@@ -211,8 +209,7 @@ public class ElasticService {
 			}
 
 			//Token을 SearchToken으로 통합하기
-			SearchToken searchToken = new SearchToken(token);
-			searchToken.setFieldName(getFieldName);
+			SearchToken searchToken = new SearchToken(getFieldName, token);
 
 			//SearchToken 리스트에 추가
 			list.add(searchToken);

@@ -40,15 +40,17 @@ public class ElasticService {
 	private final ElasticPlaceService elasticPlaceService;
 	private final SearchService searchService;
 	private final KakaoApiService kakaoApiService;
-	private final AnalyzerTest analyzerTest;
+	//private final AnalyzerTest analyzerTest;
+	private final RedisService redisService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 
 	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
-		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest) {
+		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest, RedisService redisService) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
-		this.analyzerTest = analyzerTest;
+		//this.analyzerTest = analyzerTest;
+		this.redisService = redisService;
 	}
 
 	/**
@@ -74,7 +76,7 @@ public class ElasticService {
 		}
 		//거리계산
 		double distance = searchService.calculateDistance(dto.getLat(), dto.getLng(),
-			doc.getLocation().getLat(), doc.getLocation().getLon());
+			doc.getLocation().getLat(), doc.getLocation().getLng());
 		return PlaceSearchResponseDto.fromEntity(doc, distance);
 	}
 
@@ -132,7 +134,7 @@ public class ElasticService {
 	 */
 	public PlaceSearchResponseDto toSearchPosition(PlaceDocument doc, double refLat, double refLng) {
 		double distance = searchService.calculateDistance(refLat, refLng,
-			doc.getLocation().getLat(), doc.getLocation().getLon());
+			doc.getLocation().getLat(), doc.getLocation().getLng());
 		return PlaceSearchResponseDto.fromEntity(doc, distance);
 	}
 
@@ -234,7 +236,8 @@ public class ElasticService {
 	 */
 	public String isAddress(String morph) throws IOException {
 		//txt 파일 메모리 에서 address, category 구분
-		return analyzerTest.isCategoryAddress(morph);
+		//return analyzerTest.isCategoryAddress(morph);
+		return redisService.getWordInfo(morph);
 	}
 
 }

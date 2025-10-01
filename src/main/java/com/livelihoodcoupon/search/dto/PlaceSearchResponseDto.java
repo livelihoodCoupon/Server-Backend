@@ -56,7 +56,7 @@ public class PlaceSearchResponseDto {
 			place.getRoadAddressDong(),
 			place.getLotAddress(),
 			place.getLocation().getLat(), // Changed to use Place.getLocation()
-			place.getLocation().getLon(), // Changed to use Place.getLocation()
+			place.getLocation().getLng(), // Changed to use Place.getLocation()
 			place.getPhone(),
 			place.getCategoryGroupName(),
 			place.getPlaceUrl(),

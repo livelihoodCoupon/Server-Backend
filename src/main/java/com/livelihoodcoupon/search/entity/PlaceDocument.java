@@ -3,6 +3,7 @@ package com.livelihoodcoupon.search.entity;
 import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.livelihoodcoupon.common.dto.Coordinate;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -85,7 +86,8 @@ public class PlaceDocument {
 
 	// Elasticsearch의 geo_point 타입에 맞게 lat/lon 구조로 선언
 	@JsonProperty("location")
-	private GeoPoint location;
+	private Coordinate location;
+	//private GeoPoint location;
 
 	@JsonProperty("created_at")
 	private OffsetDateTime created_at;

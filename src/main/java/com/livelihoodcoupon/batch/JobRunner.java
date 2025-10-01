@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Component
+
 @RequiredArgsConstructor
 @Slf4j
 @Profile("!test") // test 프로필에서는 실행되지 않도록 설정

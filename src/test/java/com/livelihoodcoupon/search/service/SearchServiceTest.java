@@ -31,7 +31,6 @@ import com.livelihoodcoupon.search.repository.SearchRepository;
 import kr.co.shineware.nlp.komoran.model.Token;
 import reactor.core.publisher.Mono;
 
-@SuppressWarnings("unchecked")
 @DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
 class SearchServiceTest {

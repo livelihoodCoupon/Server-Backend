@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,7 +24,7 @@ import co.elastic.clients.elasticsearch.indices.AnalyzeResponse;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
 import co.elastic.clients.elasticsearch.indices.analyze.AnalyzeToken;
 
-@SuppressWarnings("unchecked")
+//@SuppressWarnings("unchecked")
 @DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
 class AnalyzerTestTest {
@@ -31,14 +32,14 @@ class AnalyzerTestTest {
 	ElasticsearchClient mockClient;
 	@Mock
 	DictCacheService mockDictCacheService;
-
+	@InjectMocks
 	AnalyzerTest analyzerTest;
 
 	@BeforeEach
 	void setup() {
-		mockClient = mock(ElasticsearchClient.class);
-		mockDictCacheService = mock(DictCacheService.class);
-		analyzerTest = new AnalyzerTest(mockClient, mockDictCacheService);
+		//mockClient = mock(ElasticsearchClient.class);
+		//mockDictCacheService = mock(DictCacheService.class);
+		//analyzerTest = new AnalyzerTest(mockClient, mockDictCacheService);
 	}
 
 	@Test

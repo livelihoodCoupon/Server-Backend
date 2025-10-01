@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.exception.BusinessException;
+import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
@@ -67,6 +69,9 @@ public class ElasticService {
 	public PlaceSearchResponseDto elasticSearchDetail(String id, SearchRequestDto dto) throws
 		IOException {
 		PlaceDocument doc = elasticPlaceService.getPlace(String.valueOf(id));
+		if (doc == null || doc.getLocation() == null) {
+			throw new BusinessException(ErrorCode.NOT_FOUND, "id=" + id + " 문서를 찾을 수 없습니다.");
+		}
 		//거리계산
 		double distance = searchService.calculateDistance(dto.getLat(), dto.getLng(),
 			doc.getLocation().getLat(), doc.getLocation().getLon());

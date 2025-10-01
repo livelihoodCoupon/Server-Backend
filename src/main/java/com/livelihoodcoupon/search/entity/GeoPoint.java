@@ -10,5 +10,4 @@ import lombok.NoArgsConstructor;
 public class GeoPoint {
 	private Double lat;
 	private Double lon;
-
 }

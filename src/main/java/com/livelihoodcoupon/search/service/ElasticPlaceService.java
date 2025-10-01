@@ -185,7 +185,7 @@ public class ElasticPlaceService {
 			//위치 쿼리 생성
 			Query geoQuery = GeoDistanceQuery.of(g -> g
 				.field("location")
-				.distance(String.valueOf(dto.getRadius()))
+				.distance(String.valueOf(dto.getRadius() + "km"))
 				.location(GeoLocation.of(loc -> loc
 					.latlon(latlon -> latlon
 						.lat(refLat)

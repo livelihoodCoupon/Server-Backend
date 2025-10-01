@@ -61,7 +61,7 @@ public class SearchController {
 	 * 엘라스틱 이용한 목록 호출
 	 * 검색버튼 클릭시 위도, 경도 받아오고 api를 호출해야한다.
 	 * **/
-	@GetMapping("/search2")
+	@GetMapping("/searches")
 	public ResponseEntity<CustomApiResponse<PageResponse<PlaceSearchResponseDto>>> searchElastic(
 		@Valid @ModelAttribute SearchRequestDto request) throws IOException {
 
@@ -77,10 +77,10 @@ public class SearchController {
 	}
 
 	/**
-	 * 엘라스틱 이용한 내용호출
+	 * 엘라스틱 이용한 상세내용 출
 	 * 검색버튼 클릭시 위도, 경도 받아오고 api를 호출해야한다.
 	 * **/
-	@GetMapping("/search2/detail/{id}")
+	@GetMapping("/searches/{id}")
 	public ResponseEntity<CustomApiResponse<PlaceSearchResponseDto>> searchElasticDetail(
 		@Valid @PathVariable String id, SearchRequestDto request) throws IOException {
 
@@ -89,10 +89,10 @@ public class SearchController {
 	}
 
 	/**
-	 * 엘라스틱 autocomplect 호출
+	 * 엘라스틱 자동완성 호출
 	 * 단어 목록만 추출한다.
 	 * **/
-	@GetMapping("/search2/autocomplete")
+	@GetMapping("/suggestions")
 	public ResponseEntity<CustomApiResponse<List<AutocompleteResponseDto>>> searchElasticAutocomplete(
 		@Valid @ModelAttribute AutocompleteDto request) throws IOException {
 

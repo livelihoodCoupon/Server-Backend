@@ -33,7 +33,7 @@ public class PlaceSearchResponseDto {
 	private Double lat;
 
 	//@Schema(description = "경도", example = "126.974898")
-	private Double lon;
+	private Double lng;
 
 	//@Schema(description = "연락처", example = "070-22-3322")
 	private String phone;

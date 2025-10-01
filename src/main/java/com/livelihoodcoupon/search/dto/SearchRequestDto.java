@@ -45,7 +45,7 @@ public class SearchRequestDto {
 
 	//거리 1km 기본
 	@Builder.Default
-	private Double radius = 1000.0;
+	private Double radius = 1.0;
 
 	//정렬기준
 	@Builder.Default

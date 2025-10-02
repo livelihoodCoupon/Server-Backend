@@ -23,7 +23,6 @@ services:
       - OSRM_CAR_URL=http://osrm-car:5000
       - OSRM_FOOT_URL=http://osrm-foot:5000
       - OSRM_BIKE_URL=http://osrm-bike:5000
-      - OSRM_TRANSIT_URL=http://osrm-transit:5000
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs

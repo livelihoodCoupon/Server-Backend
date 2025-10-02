@@ -62,7 +62,6 @@ public class RedisServiceTest {
 		mockMap.put("field", "address");
 		mockMap.put("subfield", "동");
 		mockMap.put("parent", "중구");
-
 		when(hashOps.entries(key)).thenReturn(mockMap);
 
 		// when

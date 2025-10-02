@@ -72,6 +72,7 @@ public class ElasticPlaceService {
 				.field("category")
 				.query(categoryKeyword))
 			._toQuery();
+
 		SearchResponse<PlaceDocument> response = client.search(s -> s
 				.index(index)
 				.query(query),

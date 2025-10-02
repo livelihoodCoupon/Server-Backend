@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.livelihoodcoupon.common.dto.Coordinate;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -18,7 +19,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-//@Builder
+@Builder
 public class PlaceDocument {
 
 	@JsonProperty("id")
@@ -87,7 +88,6 @@ public class PlaceDocument {
 	// Elasticsearch의 geo_point 타입에 맞게 lat/lon 구조로 선언
 	@JsonProperty("location")
 	private Coordinate location;
-	//private GeoPoint location;
 
 	@JsonProperty("created_at")
 	private OffsetDateTime created_at;

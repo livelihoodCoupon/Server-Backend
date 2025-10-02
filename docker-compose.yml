@@ -20,8 +20,17 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - OSRM_CAR_URL=http://osrm-car:5000
+      - OSRM_FOOT_URL=http://osrm-foot:5000
+      - OSRM_BIKE_URL=http://osrm-bike:5000
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     networks:
       - livelihoodCoupon-net
+
+
+networks:
+  livelihoodCoupon-net:
+    driver: bridge
+

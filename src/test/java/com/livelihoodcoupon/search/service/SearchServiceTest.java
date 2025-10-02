@@ -20,19 +20,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import com.livelihoodcoupon.place.entity.Place; // Changed from PlaceEntity
-import com.livelihoodcoupon.collector.service.KakaoApiService;
-import com.livelihoodcoupon.search.dto.SearchRequest;
-import com.livelihoodcoupon.search.dto.SearchResponse;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.search.dto.SearchRequestDto;
+import com.livelihoodcoupon.search.dto.SearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchToken;
 import com.livelihoodcoupon.search.repository.SearchRepository;
 
 import kr.co.shineware.nlp.komoran.model.Token;
 import reactor.core.publisher.Mono;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Coordinate;
 
-@SuppressWarnings("unchecked")
 @DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
 class SearchServiceTest {
@@ -63,29 +61,29 @@ class SearchServiceTest {
 		// Given
 		String query = "서울시 종로구 카페";
 
-		SearchRequest req = new SearchRequest();
+		SearchRequestDto req = new SearchRequestDto();
 		req.setQuery(query);
 		req.initDefaults();
 
 		List<SearchToken> mockTokens = new ArrayList<>();
 
-		SearchToken searchToken1 = new SearchToken(new Token("서울시", "NNP", 0, 3));
-		searchToken1.setFieldName("address");
+		SearchToken searchToken1 = new SearchToken("address",
+			new Token("서울시", "NNP", 0, 3));
 		mockTokens.add(searchToken1);
 
-		SearchToken searchToken2 = new SearchToken(new Token("종로구", "NNP", 4, 6));
-		searchToken2.setFieldName("address");
+		SearchToken searchToken2 = new SearchToken("address",
+			new Token("종로구", "NNP", 4, 6));
 		mockTokens.add(searchToken2);
 
-		SearchToken searchToken3 = new SearchToken(new Token("카페", "NNG", 8, 10));
-		searchToken3.setFieldName("category");
+		SearchToken searchToken3 = new SearchToken("category",
+			new Token("카페", "NNG", 8, 10));
 		mockTokens.add(searchToken3);
 
 		when(redisService.getWordInfo(anyString())).thenReturn("address");  // Mock Redis 서비스
 
 		// KakaoMapService mock
 		when(kakaoApiService.getCoordinatesFromAddress(anyString()))
-			.thenReturn(Mono.just(new KakaoApiService.Coordinate(37.57104033689386, 127.0019782463416)));
+			.thenReturn(Mono.just(new Coordinate(37.57104033689386, 127.0019782463416)));
 
 		// Specification mocking
 		Specification<Place> spec = mock(Specification.class);
@@ -103,7 +101,9 @@ class SearchServiceTest {
 			.categoryGroupCode("TC")
 			.categoryGroupName("Test Category Group")
 			.placeUrl("http://test.com")
-			.location(new org.locationtech.jts.geom.GeometryFactory().createPoint(new org.locationtech.jts.geom.Coordinate(126.9863813979137, 37.560949118173454))) // Initialize location directly
+			.location(new org.locationtech.jts.geom.GeometryFactory().createPoint(
+				new org.locationtech.jts.geom.Coordinate(126.9863813979137,
+					37.560949118173454))) // Initialize location directly
 			.build();
 		place.getLocation().setSRID(4326); // Set SRID
 
@@ -114,13 +114,13 @@ class SearchServiceTest {
 		when(searchRepository.findAll(spec, pageable)).thenReturn(pageResult);
 
 		// When
-		Page<SearchResponse> result = searchService.search(req, 10, 10);
+		Page<SearchResponseDto> result = searchService.search(req, 10, 10);
 
 		// Then
 		assertNotNull(result);
 		assertEquals(1, result.getContent().size());
 		assertEquals(0, result.getPageable().getPageNumber());
-		assertInstanceOf(SearchResponse.class, result.getContent().getFirst());
+		assertInstanceOf(SearchResponseDto.class, result.getContent().getFirst());
 	}
 
 	@Test

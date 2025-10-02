@@ -19,10 +19,11 @@ fi
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 INFRA_BASE_DIR="${ROOT_DIR}/infra"
 
-# ── 3️⃣ compose 디렉토리 목록: 부가 인프라 서비스 병렬 종료 (ELK, Monitoring) ──
+# ── 3️⃣ compose 디렉토리 목록: 부가 인프라 서비스 병렬 종료 (ELK, Monitoring, OSRM) ──
 COMPOSE_DIRS=(
   "${INFRA_BASE_DIR}/monitoring"
   "${INFRA_BASE_DIR}/elk"
+  "${INFRA_BASE_DIR}/osrm"
 )
 
 # ── 4️⃣ 병렬 종료 (부가 인프라) ──
@@ -51,7 +52,7 @@ for pid in "${PIDS[@]}"; do
   wait $pid
 done
 
-echo "부가 인프라(ELK, Monitoring) compose 스택이 병렬로 중지되었습니다."
+echo "부가 인프라(ELK, Monitoring, OSRM) compose 스택이 병렬로 중지되었습니다."
 
 # ── 6️⃣ 메인 앱 스택 종료 (DB, Redis, App) ──
 echo ""

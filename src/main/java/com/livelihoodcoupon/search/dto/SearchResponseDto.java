@@ -1,6 +1,6 @@
 package com.livelihoodcoupon.search.dto;
 
-import com.livelihoodcoupon.place.entity.Place; // Changed from PlaceEntity
+import com.livelihoodcoupon.place.entity.Place;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class SearchResponse {
+public class SearchResponseDto {
 
 	//@Schema(description = "장소번호", example = "324234")
 	private String placeId; // Kakao's unique place ID
@@ -44,9 +44,9 @@ public class SearchResponse {
 	//@Schema(description = "내 위치로부터의 거리 (미터 단위)", example = "123.45")
 	private Double distance;
 
-	public static SearchResponse fromEntity(Place place, Double distance) { // Changed from PlaceEntity
+	public static SearchResponseDto fromEntity(Place place, Double distance) { // Changed from PlaceEntity
 
-		return new SearchResponse(
+		return new SearchResponseDto(
 			place.getPlaceId(),
 			place.getPlaceName(),
 			place.getRoadAddress(),

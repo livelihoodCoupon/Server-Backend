@@ -1,4 +1,4 @@
-package com.livelihoodcoupon.collector.dto;
+package com.livelihoodcoupon.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

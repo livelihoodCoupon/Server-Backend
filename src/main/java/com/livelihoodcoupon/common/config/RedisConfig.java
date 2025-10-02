@@ -74,6 +74,8 @@ public class RedisConfig {
 				defaultConfig.entryTtl(Duration.ofHours(1))) // 격자 캐시: 1시간
 			.withCacheConfiguration("placeDetails",
 				defaultConfig.entryTtl(Duration.ofMinutes(30))) // 장소 상세: 30분
+			.withCacheConfiguration("placeIds",
+				defaultConfig.entryTtl(Duration.ofHours(2))) // 장소 ID: 2시간
 			.build();
 	}
 }

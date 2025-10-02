@@ -10,8 +10,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -23,7 +23,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import com.livelihoodcoupon.common.exception.BusinessException;
+import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.search.dto.AutocompleteDto;
+import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
+import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
 import com.livelihoodcoupon.search.repository.SearchRepository;
@@ -32,11 +37,8 @@ import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
 
-import kr.co.shineware.nlp.komoran.core.Komoran;
-
 @DisplayName("Search 통합테스트")
 @WebMvcTest(SearchController.class)
-@AutoConfigureMockMvc(addFilters = false) // Security 필터 비활성화
 public class SearchControllerTest {
 
 	List<Place> places = null;
@@ -49,23 +51,19 @@ public class SearchControllerTest {
 	@MockitoBean
 	private ElasticService elasticService;
 
-	@MockitoBean
+	@Mock
 	private RedisWordRegister redisWordRegister;
 
-	@MockitoBean
+	@Mock
 	private SearchRepository searchRepository;
 
-	@MockitoBean
+	@Mock
 	private ElasticPlaceService elasticPlaceService;
-
-	private Komoran komoran; // ElasticService의 의존성 해결
-	private SearchService search; // Controller 의존성 Mock
-	private SearchController searchController;
 
 	@BeforeEach
 	void setUp() {
-		elasticService = mock(ElasticService.class); // Komoran 필요 없음
-		searchController = new SearchController(search, elasticService);
+		//elasticService = mock(ElasticService.class); // Komoran 필요 없음
+		//searchController = new SearchController(search, elasticService);
 	}
 
 	@Test
@@ -198,4 +196,205 @@ public class SearchControllerTest {
 			.andExpect(
 				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
 	}
+
+	@Test
+	@DisplayName("엘라스틱 목록 테스트 성공")
+	void searchElastic_success() throws Exception {
+
+		//given
+		String query = "서울시 종로구 참치";
+		SearchRequestDto req = SearchRequestDto.builder().query(query).build();
+		req.initDefaults();
+
+		PlaceSearchResponseDto place1 = PlaceSearchResponseDto.builder()
+			.placeId("22318916")    //.category("음식점 > 일식 > 참치회")
+			.placeName("종로참치").roadAddress("서울 종로구 청계천로 97")
+			.lotAddress("서울 종로구 관철동 37-2").lat(37.56836267).lng(126.9884894)
+			.phone("02-2265-3737").categoryGroupName("음식점").build();
+		List<PlaceSearchResponseDto> searchResponses = List.of(place1);
+		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
+		Page<PlaceSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
+		when(elasticService.elasticSearch(req, 10, 100)).thenReturn(pageList);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/searches")
+				.param("query", query)
+		);
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.status().isOk())  // 상태 코드가 200 OK이어야 한다
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isArray())  // JSON path로 배열이 맞는지 검증
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(1))  // 배열의 길이
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeId").value("22318916"))  // 첫 번째 항목의 placeId 확인
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].placeName").value("종로참치"));  // 첫 번째 항목의 placeName 확인
+	}
+
+	@Test
+	@DisplayName("엘라스틱 상세내용 테스트 성공")
+	void searchElasticDetail_success() throws Exception {
+
+		//given
+		String id = "22318916";
+		String place_name = "테스트 카페";
+		SearchRequestDto req = SearchRequestDto.builder()
+			.lat(37.56836267).lng(126.9884894).query(id).build();
+		req.initDefaults();
+
+		PlaceSearchResponseDto place1 = PlaceSearchResponseDto.builder()
+			.placeId(id)    //.category("음식점 > 일식 > 참치회")
+			.placeName(place_name).roadAddress("서울 종로구 청계천로 97")
+			.lotAddress("서울 종로구 관철동 37-2").lat(req.getLat()).lng(req.getLng())
+			.phone("02-2265-3737").categoryGroupName("음식점").build();
+
+		when(elasticService.elasticSearchDetail(id, req)).thenReturn(place1);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/searches/{id}", id)
+				.param("lat", String.valueOf(req.getLat()))
+				.param("lng", String.valueOf(req.getLng()))
+				.param("query", req.getQuery()));
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("===>API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.placeId").value(id))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.placeName").value(place_name));
+	}
+
+	@Test
+	@DisplayName("엘라스틱 상세내용 테스트 실패")
+	void searchElasticDetail_failed404() throws Exception {
+
+		//given
+		String id = "22318916";
+		String place_name = "테스트 카페";
+		SearchRequestDto req = SearchRequestDto.builder()
+			.lat(37.56836267).lng(126.9884894).query(id).build();
+		req.initDefaults();
+
+		PlaceSearchResponseDto place1 = PlaceSearchResponseDto.builder()
+			.placeId(id)    //.category("음식점 > 일식 > 참치회")
+			.placeName(place_name).roadAddress("서울 종로구 청계천로 97")
+			.lotAddress("서울 종로구 관철동 37-2").lat(req.getLat()).lng(req.getLng())
+			.phone("02-2265-3737").categoryGroupName("음식점").build();
+
+		when(elasticService.elasticSearchDetail(id, req)).thenThrow(
+			new BusinessException(ErrorCode.NOT_FOUND, "검색 결과가 없습니다."));
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/searches/{id}", id)
+				.param("lat", String.valueOf(req.getLat()))
+				.param("lng", String.valueOf(req.getLng()))
+				.param("query", req.getQuery()));
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("===>API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isNotFound())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.error.message").value("검색 결과가 없습니다."));
+	}
+
+	@Test
+	@DisplayName("엘라스틱 자동완성 테스트 성공")
+	void searchElasticAutocomplete_success() throws Exception {
+
+		//given
+		String word = "강";
+		int maxRecordSize = 10;
+		AutocompleteDto req = AutocompleteDto.builder().word(word).build();
+
+		AutocompleteResponseDto dto = AutocompleteResponseDto.builder().word("강남").build();
+		AutocompleteResponseDto dto2 = AutocompleteResponseDto.builder().word("강남구청").build();
+		List<AutocompleteResponseDto> list = List.of(dto, dto2);
+		when(elasticService.elasticSearchAutocomplete(refEq(req), eq(maxRecordSize)))
+			.thenReturn(list);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/suggestions")
+				.param("word", word)
+		);
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.length()").value(2))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data[0].word").value("강남"))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data[1].word").value("강남구청"));
+	}
+
+	@Test
+	@DisplayName("엘라스틱 자동완성 테스트 실패(400)")
+	void searchElasticAutocomplete_failed400() throws Exception {
+
+		//given
+		String word = "";
+		int maxRecordSize = 10;
+		AutocompleteDto req = AutocompleteDto.builder().word(word).build();
+
+		List<AutocompleteResponseDto> list = List.of();
+		when(elasticService.elasticSearchAutocomplete(refEq(req), eq(maxRecordSize)))
+			.thenReturn(list);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/suggestions")
+				.param("word", word)
+		);
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isBadRequest())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.error.message").value("word: 검색어는 필수입니다."));
+	}
+
+	@Test
+	@DisplayName("엘라스틱 자동완성 테스트 실패(404)")
+	void searchElasticAutocomplete_failed404() throws Exception {
+
+		//given
+		String word = "asdfsafd";
+		int maxRecordSize = 10;
+		AutocompleteDto req = AutocompleteDto.builder().word(word).build();
+
+		List<AutocompleteResponseDto> list = List.of();
+		when(elasticService.elasticSearchAutocomplete(refEq(req), eq(maxRecordSize)))
+			.thenThrow(new BusinessException(ErrorCode.NOT_FOUND, "검색 결과가 없습니다."));
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/suggestions")
+				.param("word", word)
+		);
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isNotFound())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.error.message").value("검색 결과가 없습니다."));
+	}
+
 }

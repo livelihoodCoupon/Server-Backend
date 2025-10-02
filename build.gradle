@@ -45,6 +45,9 @@ dependencies {
     testImplementation "org.testcontainers:testcontainers:1.20.5" // testcontainers
     testImplementation 'org.testcontainers:postgresql:1.20.5' // PostgreSQL 모듈
     testImplementation "org.testcontainers:junit-jupiter:1.20.5" // JUnit 5 연동
+    testImplementation "org.mockito:mockito-core:5.2.0"  // 기본 Mockito
+    testImplementation "org.mockito:mockito-inline:5.2.0" // final 클래스 mocking 필요 시
+
 
     // 로깅, 모니터링 관련
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -78,6 +81,7 @@ dependencies {
     //offsetDatTime 매핑 추가
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
+
 }
 
 checkstyle {
@@ -106,4 +110,3 @@ tasks.named('test') {
 tasks.named('checkstyleTest') {
     enabled = false
 }
-

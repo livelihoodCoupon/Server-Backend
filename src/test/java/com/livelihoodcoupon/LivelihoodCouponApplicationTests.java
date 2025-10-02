@@ -10,6 +10,8 @@ import kr.co.shineware.nlp.komoran.core.Komoran;
 
 class LivelihoodCouponApplicationTests extends BaseIntegrationTest {
 
+	//komoran, elasticservice는
+	// out of memory 오류로 인해서 메인 test에서 bean으로 등록한다.
 	@MockitoBean
 	private Komoran komoran;
 

@@ -40,7 +40,7 @@ public class ElasticService {
 	private final ElasticPlaceService elasticPlaceService;
 	private final SearchService searchService;
 	private final KakaoApiService kakaoApiService;
-	//private final AnalyzerTest analyzerTest;
+	private final AnalyzerTest analyzerTest;
 	private final RedisService redisService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 
@@ -49,7 +49,7 @@ public class ElasticService {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
-		//this.analyzerTest = analyzerTest;
+		this.analyzerTest = analyzerTest;
 		this.redisService = redisService;
 	}
 
@@ -62,7 +62,11 @@ public class ElasticService {
 	 */
 	public List<AutocompleteResponseDto> elasticSearchAutocomplete(AutocompleteDto dto, int maxRecordSize) throws
 		IOException {
-		return elasticPlaceService.autocompletePlaceNames(dto, maxRecordSize);
+		List<AutocompleteResponseDto> list = elasticPlaceService.autocompletePlaceNames(dto, maxRecordSize);
+		if (list == null || list.isEmpty()) {
+			throw new BusinessException(ErrorCode.NOT_FOUND, "검색 결과가 없습니다.");
+		}
+		return list;
 	}
 
 	/**
@@ -74,9 +78,10 @@ public class ElasticService {
 		if (doc == null || doc.getLocation() == null) {
 			throw new BusinessException(ErrorCode.NOT_FOUND, "id=" + id + " 문서를 찾을 수 없습니다.");
 		}
-		//거리계산
+		//거리계산하기
 		double distance = searchService.calculateDistance(dto.getLat(), dto.getLng(),
 			doc.getLocation().getLat(), doc.getLocation().getLng());
+		System.out.println("444");
 		return PlaceSearchResponseDto.fromEntity(doc, distance);
 	}
 

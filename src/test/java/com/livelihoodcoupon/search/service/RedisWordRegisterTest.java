@@ -37,8 +37,6 @@ public class RedisWordRegisterTest {
 
 		// RedisService.getRedisTemplate() mock
 		doReturn(redisTemplate).when(redisService).getRedisTemplate();
-
-		// final 메서드 stub는 doReturn
 		doReturn(false).when(redisTemplate).hasKey(anyString());
 		doReturn(hashOps).when(redisTemplate).opsForHash();
 
@@ -58,9 +56,6 @@ public class RedisWordRegisterTest {
 
 		ClassPathResource mockResource = mock(ClassPathResource.class);
 		when(mockResource.getInputStream()).thenReturn(fakeInput);
-
-		// ClassPathResource 생성 부분을 스파이로 대체
-		// -> fileWordRegister에서 new ClassPathResource(...) 대신 mockResource 사용
 		RedisWordRegister spyRegister = spy(redisWordRegister);
 		doReturn(mockResource).when(spyRegister).createResource(anyString());
 

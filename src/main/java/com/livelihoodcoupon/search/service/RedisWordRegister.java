@@ -35,9 +35,7 @@ public class RedisWordRegister {
 		}
 
 		// 파일 읽기
-		//ClassPathResource resource = new ClassPathResource(filePath);
-		ClassPathResource resource = createResource(filePath); // 변경됨
-
+		ClassPathResource resource = createResource(filePath);
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()))) {
 			String line;
 			while ((line = reader.readLine()) != null) {

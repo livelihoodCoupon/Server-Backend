@@ -48,7 +48,6 @@ dependencies {
     testImplementation "org.mockito:mockito-core:5.2.0"  // 기본 Mockito
     testImplementation "org.mockito:mockito-inline:5.2.0" // final 클래스 mocking 필요 시
 
-
     // 로깅, 모니터링 관련
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
@@ -80,8 +79,6 @@ dependencies {
 
     //offsetDatTime 매핑 추가
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-
-
 }
 
 checkstyle {

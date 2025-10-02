@@ -47,6 +47,7 @@ public class RouteController {
 	public ResponseEntity<CustomApiResponse<RouteResponse>> getRoute(
 		@RequestParam double startLng,
 		@RequestParam double startLat,
+
 		@RequestParam double endLng,
 		@RequestParam double endLat,
 		@RequestParam(defaultValue = "driving") String routeType) {

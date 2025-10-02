@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import jakarta.annotation.PreDestroy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CachePut;
@@ -31,7 +33,6 @@ import com.livelihoodcoupon.common.dto.KakaoResponse;
 import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.common.service.MdcLogging;
 
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 
 @Service

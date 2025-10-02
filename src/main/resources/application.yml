@@ -49,3 +49,8 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:elasticsearch}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:http}

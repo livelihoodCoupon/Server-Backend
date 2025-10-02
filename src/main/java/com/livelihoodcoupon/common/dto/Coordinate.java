@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Coordinate {
-	@JsonProperty("lon")
+	@JsonProperty("lng")
 	private double lng; // 경도 (X 좌표)
 
 	@JsonProperty("lat")

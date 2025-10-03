@@ -1,0 +1,250 @@
+{
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1,
+    "analysis": {
+      "tokenizer": {
+        "autocomplete_edge_ngram_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 10,
+          "token_chars": [
+            "letter",
+            "digit",
+            "whitespace"
+          ]
+        }
+      },
+      "analyzer": {
+        "autocomplete_edge_ngram_analyzer": {
+          "type": "custom",
+          "tokenizer": "autocomplete_edge_ngram_tokenizer",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "autocomplete_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "nori_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer",
+          "filter": [
+            "lowercase"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "category_level1": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "category_level2": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "category_level3": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "category_level4": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "category": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "category_group_code": {
+        "type": "keyword"
+      },
+      "category_group_name": {
+        "type": "keyword"
+      },
+      "keyword": {
+        "type": "keyword"
+      },
+      "location": {
+        "type": "geo_point"
+      },
+      "lot_address": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "phone": {
+        "type": "keyword"
+      },
+      "place_id": {
+        "type": "integer"
+      },
+      "place_name": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "place_url": {
+        "type": "text",
+        "index": false
+      },
+      "region": {
+        "type": "keyword"
+      },
+      "road_address_sido": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "road_address_sigungu": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "road_address_road": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "road_address_dong": {
+        "type": "keyword",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "road_address": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "created_at": {
+        "type": "date"
+      },
+      "updated_at": {
+        "type": "date"
+      }
+    }
+  }
+}

@@ -134,6 +134,17 @@ public class PlaceCsvBatchConfig {
 				return null; // 파싱 실패 시 해당 아이템 건너뜀
 			}
 
+			// 주소와 카테고리 문자열을 파싱하는 로직 (예시)
+			String[] addressParts = item.getRoadAddress().split(" ");
+			String roadAddressSido = addressParts.length > 0 ? addressParts[0] : null;
+			String roadAddressSigungu = addressParts.length > 1 ? addressParts[1] : null;
+
+			String[] categoryParts = item.getCategoryName().split(" > ");
+			String categoryLevel1 = categoryParts.length > 0 ? categoryParts[0] : null;
+			String categoryLevel2 = categoryParts.length > 1 ? categoryParts[1] : null;
+			String categoryLevel3 = categoryParts.length > 2 ? categoryParts[2] : null;
+
+
 			return Place.builder()
 				.placeId(item.getPlaceId())
 				.region(item.getRegion())
@@ -147,6 +158,12 @@ public class PlaceCsvBatchConfig {
 				.categoryGroupName(item.getCategoryGroupName())
 				.placeUrl(item.getPlaceUrl())
 				.location(point)
+				// 파싱된 주소 및 카테고리 필드 추가
+				.roadAddressSido(roadAddressSido)
+				.roadAddressSigungu(roadAddressSigungu)
+				.categoryLevel1(categoryLevel1)
+				.categoryLevel2(categoryLevel2)
+				.categoryLevel3(categoryLevel3)
 				.build();
 		};
 	}

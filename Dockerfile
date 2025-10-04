@@ -26,6 +26,7 @@ WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 
 # 8080 포트를 외부에 노출합니다.
+#아이폰 접속문제로 인해서 8080->8888로 변경
 EXPOSE 8080
 
 # 컨테이너가 시작될 때 JAR 파일을 실행하는 명령어를 지정합니다.

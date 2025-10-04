@@ -10,7 +10,6 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Page;
@@ -28,13 +27,12 @@ import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
+import com.livelihoodcoupon.search.dto.CategoryDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
-import com.livelihoodcoupon.search.repository.SearchRepository;
-import com.livelihoodcoupon.search.service.ElasticPlaceService;
+import com.livelihoodcoupon.search.service.CategoryService;
 import com.livelihoodcoupon.search.service.ElasticService;
-import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
 
 @DisplayName("Search 통합테스트")
@@ -51,14 +49,8 @@ public class SearchControllerTest {
 	@MockitoBean
 	private ElasticService elasticService;
 
-	@Mock
-	private RedisWordRegister redisWordRegister;
-
-	@Mock
-	private SearchRepository searchRepository;
-
-	@Mock
-	private ElasticPlaceService elasticPlaceService;
+	@MockitoBean
+	private CategoryService categoryService;
 
 	@BeforeEach
 	void setUp() {
@@ -395,6 +387,32 @@ public class SearchControllerTest {
 			.andDo(print())
 			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
 			.andExpect(MockMvcResultMatchers.jsonPath("$.error.message").value("검색 결과가 없습니다."));
+	}
+
+	@Test
+	@DisplayName("카테고리 목록 테스트 성공")
+	void categoryTopList() throws Exception {
+
+		//given
+		int maxRecordSize = 10;
+		CategoryDto dto = CategoryDto.builder().categoryName("음식점").build();
+		List<CategoryDto> lists = List.of(dto);
+		when(categoryService.findTopCategory(maxRecordSize)).thenReturn(lists);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/categories")
+		);
+		String responseContent = resultActions.andReturn().getResponse().getContentAsString();
+		System.out.println("API 응답 내용: " + responseContent);
+
+		//then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(true))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data").isArray())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.length()").value(1))
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data[0].categoryName").value("음식점"));
 	}
 
 }

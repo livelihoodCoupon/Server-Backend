@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.livelihoodcoupon.common.response.CustomApiResponse;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
+import com.livelihoodcoupon.search.dto.CategoryDto;
 import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
+import com.livelihoodcoupon.search.service.CategoryService;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.SearchService;
 
@@ -34,6 +36,7 @@ public class SearchController {
 
 	private final SearchService search;
 	private final ElasticService elasticService;
+	private final CategoryService categoryService;
 
 	/**
 	 * redis 이용한 호출
@@ -99,6 +102,20 @@ public class SearchController {
 		int maxRecordSize = 10;
 		List<AutocompleteResponseDto> list = elasticService.elasticSearchAutocomplete(request, maxRecordSize);
 
+		return ResponseEntity.ok().body(CustomApiResponse.success(list));
+	}
+
+	/**
+	 * 카테고리 상위 10개 보여주기
+	 * @return
+	 * @throws IOException
+	 */
+	@GetMapping("/categories")
+	public ResponseEntity<CustomApiResponse<List<CategoryDto>>> categoryTopList() throws IOException {
+		//db에 카테고리 넣기
+		//검색할때 카테고리면 +1
+		int maxRecordSize = 10;
+		List<CategoryDto> list = categoryService.findTopCategory(maxRecordSize);
 		return ResponseEntity.ok().body(CustomApiResponse.success(list));
 	}
 

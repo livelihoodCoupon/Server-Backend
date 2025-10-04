@@ -43,14 +43,17 @@ public class ElasticService {
 	private final AnalyzerTest analyzerTest;
 	private final RedisService redisService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
+	private final CategoryService categoryService;
 
 	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
-		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest, RedisService redisService) {
+		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest, RedisService redisService,
+		CategoryService categoryService) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
 		this.analyzerTest = analyzerTest;
 		this.redisService = redisService;
+		this.categoryService = categoryService;
 	}
 
 	/**
@@ -213,7 +216,7 @@ public class ElasticService {
 				continue;
 			}
 
-			//txt dict 파일에서 필드값 가져오기
+			//txt dict 파일에서 필드값 주소여부 구분값 가져오기
 			String getFieldName = isAddress(token.getMorph());
 
 			//필드가 address 이면 검색할 주소 build
@@ -240,9 +243,20 @@ public class ElasticService {
 	 * @return
 	 */
 	public String isAddress(String morph) throws IOException {
-		//txt 파일 메모리 에서 address, category 구분
-		//return analyzerTest.isCategoryAddress(morph);
-		return redisService.getWordInfo(morph);
+
+		String type;
+
+		//txt 파일 in-memory 뱡식 메모리 에서 address, category 구분
+		type = analyzerTest.isCategoryAddress(morph);
+
+		//redis 방식
+		//type = redisService.getWordInfo(morph);
+
+		//category이면 Category 엔티티에 저장
+		//if (Objects.equals(type, "category"))
+		//	categoryService.saveOrIncrement(morph);
+
+		return type;
 	}
 
 }

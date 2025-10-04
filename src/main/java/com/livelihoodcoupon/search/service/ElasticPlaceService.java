@@ -24,7 +24,6 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.GeoDistanceQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchBoolPrefixQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchPhrasePrefixQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
@@ -186,7 +185,7 @@ public class ElasticPlaceService {
 			//위치 쿼리 생성
 			Query geoQuery = GeoDistanceQuery.of(g -> g
 				.field("location")
-				.distance(String.valueOf(dto.getRadius() + "km"))
+				.distance(dto.getRadius() + "km")
 				.location(GeoLocation.of(loc -> loc
 					.latlon(latlon -> latlon
 						.lat(refLat)
@@ -195,50 +194,14 @@ public class ElasticPlaceService {
 				))
 			)._toQuery();
 
-			//주소, 카테고리, 상가명 쿼리 생성
-			List<Query> shouldQueries = new ArrayList<>();
-
 			//목록이 공백일수 있기에 한번더체크
 			List<SearchToken> resultList2;
 			resultList2 = (resultList == null || resultList.isEmpty()) ? Collections.emptyList() : resultList;
 
-			// 분리된 단어로 쿼리 만들기
-			// 분리하기전에 쿼리문인데 임시로 보관
-			int count = 0;
-			for (SearchToken token : resultList2) {
-				String fieldName = token.getFieldName(); //필드이름(address or category or place_name)
-				String word = token.getMorph(); //분리된 단어
-
-				if (fieldName != null) {
-					count++;
-					switch (fieldName) {
-						case "address":
-							//MatchPhrasePrefixQuery
-							Query roadQuery = MatchPhrasePrefixQuery.of(
-								m -> m.field("road_address").query(word.trim()).boost(1.0f))._toQuery();
-							shouldQueries.add(roadQuery);
-							break;
-						case "category":
-							Query categoryQuery = MultiMatchQuery.of(
-								m -> m.fields("category.autocomplete^3", "category.nori^2", "category^1")
-									.query(word.trim())
-									.boost(2.0f))._toQuery();
-							shouldQueries.add(categoryQuery);
-							break;
-						default:
-							Query nameQuery = MatchQuery.of(
-								m -> m.field("place_name.autocomplete").query(word.trim()).boost(3.0f))._toQuery();
-							shouldQueries.add(nameQuery);
-							break;
-					}
-				}
-			}
-
 			//마지막 쿼리 만들기2
-			int finalCount = count;
 			BoolQuery boolQuery = BoolQuery.of(b -> {
 				b.must(geoQuery);
-				b.minimumShouldMatch(String.valueOf(finalCount)); // should 중 1개 이상만 일치하면 됨
+				b.minimumShouldMatch(String.valueOf(resultList.size())); // should 중 1개 이상만 일치하면 됨
 
 				for (SearchToken token : resultList2) {
 					//edge_ngram 자동완성용
@@ -281,30 +244,34 @@ public class ElasticPlaceService {
 			log.info("====>ElasticPlaceService searchPlace finalQuery={}", finalQuery);
 
 			// 정렬 옵션
-			SortOptions geoSort = SortOptions.of(s -> s
-				.geoDistance(g -> g
-					.field("location")
-					.location(GeoLocation.of(loc -> loc
-						.latlon(latlon -> latlon
-							.lat(refLat)
-							.lon(refLng)
-						)
-					))
-					.order(SortOrder.Asc)
-					.unit(DistanceUnit.Kilometers)
-					.mode(SortMode.Min)
-				)
-			);
+			List<SortOptions> sortOptions = new ArrayList<>();
+			if ("distance".equalsIgnoreCase(dto.getSort())) {
+				SortOptions geoSort = SortOptions.of(s -> s
+					.geoDistance(g -> g
+						.field("location")
+						.location(GeoLocation.of(loc -> loc
+							.latlon(latlon -> latlon
+								.lat(refLat)
+								.lon(refLng)
+							)
+						))
+						.order(SortOrder.Asc)
+						.unit(DistanceUnit.Kilometers)
+						.mode(SortMode.Min)
+					)
+				);
+				sortOptions.add(geoSort);
+			}
 
-			int pageNumber = pageable.getPageNumber();         // 시작 인덱스
-			int pageSize = pageable.getPageSize();         // 끝 인덱스
-			int pageFrom = pageNumber * pageSize;         // 시작 인덱스
+			int pageNumber = pageable.getPageNumber(); // 시작 인덱스
+			int pageSize = pageable.getPageSize(); // 끝 인덱스
+			int pageFrom = pageNumber * pageSize; // 시작 인덱스
 
 			// 검색 요청후  return
 			SearchResponse<PlaceDocument> response = client.search(s -> s
 					.index(index)
 					.query(finalQuery)
-					.sort(geoSort)
+					.sort(sortOptions)
 					.from(pageFrom)
 					.size(pageSize),
 				PlaceDocument.class

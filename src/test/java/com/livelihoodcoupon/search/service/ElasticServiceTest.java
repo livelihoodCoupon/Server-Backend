@@ -60,12 +60,14 @@ class ElasticServiceTest {
 	private AnalyzerTest analyzerTest;
 	@Mock
 	private ElasticsearchClient client;
+	@Mock
+	private CategoryService categoryService;
 
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		elasticService = new ElasticService(elasticPlaceService, searchService, kakaoApiService,
-			analyzerTest, redisService);
+			analyzerTest, redisService, categoryService);
 	}
 
 	@Test
@@ -92,7 +94,8 @@ class ElasticServiceTest {
 			new Token("카페", "NNG", 8, 10));
 		resultList.add(searchToken3);
 
-		when(redisService.getWordInfo(anyString())).thenReturn("address");
+		when(analyzerTest.isCategoryAddress(anyString())).thenReturn("address");
+		//when(redisService.getWordInfo(anyString())).thenReturn("address");
 		when(kakaoApiService.getCoordinatesFromAddress(anyString()))
 			.thenReturn(Mono.just(new Coordinate(37.57104033689386, 127.0019782463416)));
 
@@ -201,7 +204,8 @@ class ElasticServiceTest {
 		// Given
 		String query = "서울시 강남구 카페";
 
-		when(redisService.getWordInfo(anyString())).thenReturn("address");
+		//when(redisService.getWordInfo(anyString())).thenReturn("address");
+		when(analyzerTest.isCategoryAddress(anyString())).thenReturn("address");
 
 		// When
 		List<SearchToken> tokens = elasticService.analysisChat(query);
@@ -218,7 +222,8 @@ class ElasticServiceTest {
 		// Given
 		String morph = "서울시";
 		String pos = "NNP";
-		when(redisService.getWordInfo(morph)).thenReturn("address");
+		when(analyzerTest.isCategoryAddress(morph)).thenReturn("address");
+		//when(redisService.getWordInfo(morph)).thenReturn("address");
 
 		// When
 		String result = elasticService.isAddress(morph);

@@ -37,6 +37,8 @@ class RedisWordInitializerTest {
 		// then
 		verify(redisWordRegister).fileWordRegister("address");
 		verify(redisWordRegister).fileWordRegister("category");
+		verify(redisWordRegister).fileWordRegister2("category2");
+
 		verifyNoMoreInteractions(redisWordRegister);
 	}
 }

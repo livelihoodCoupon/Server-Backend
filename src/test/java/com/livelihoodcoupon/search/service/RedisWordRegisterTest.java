@@ -29,11 +29,14 @@ public class RedisWordRegisterTest {
 	@Mock
 	private HashOperations<String, String, String> hashOps;
 
+	@Mock
+	private CategoryService categoryService;
+
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 
-		redisWordRegister = new RedisWordRegister(redisService);
+		redisWordRegister = new RedisWordRegister(redisService, categoryService);
 
 		// RedisService.getRedisTemplate() mock
 		doReturn(redisTemplate).when(redisService).getRedisTemplate();
@@ -68,4 +71,27 @@ public class RedisWordRegisterTest {
 		verify(redisService).saveWord("강남구", "address", "", "");
 	}
 
+	@Test
+	@DisplayName("postgres에 category 단어등록 성공")
+	void fileWordRegister2_shouldSaveWords_whenFileHasContent() throws IOException, IOException {
+		// given
+		String redisKey = "category2";
+
+		// ClassPathResource를 mock해서 입력 스트림 제공
+		String fileContent = "음식점\n숙박\n";
+		InputStream fakeInput = new ByteArrayInputStream(fileContent.getBytes());
+
+		ClassPathResource mockResource = mock(ClassPathResource.class);
+		when(mockResource.getInputStream()).thenReturn(fakeInput);
+		RedisWordRegister spyRegister = spy(redisWordRegister);
+		doReturn(mockResource).when(spyRegister).createResource(anyString());
+
+		// when
+		spyRegister.fileWordRegister2(redisKey);
+
+		// then
+		// RedisService.saveWord가 각 단어에 대해 호출됐는지 확인
+		verify(categoryService).saveOrIncrement("음식점");
+		verify(categoryService).saveOrIncrement("숙박");
+	}
 }

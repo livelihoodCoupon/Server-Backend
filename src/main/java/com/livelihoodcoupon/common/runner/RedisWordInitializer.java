@@ -25,6 +25,7 @@ public class RedisWordInitializer implements ApplicationRunner {
 		log.info("Redis 단어 등록 시작");
 		redisWordRegister.fileWordRegister("address");
 		redisWordRegister.fileWordRegister("category");
+		redisWordRegister.fileWordRegister2("category2");
 		log.info("Redis 단어 등록 종료");
 	}
 }

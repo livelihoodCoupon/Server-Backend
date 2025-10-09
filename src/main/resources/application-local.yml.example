@@ -20,6 +20,11 @@ spring:
 #  csv:
 #    file:
 #      path: data/csv
+#    incremental-path: data/new-csv/
 #
 #cors:
 #  allowed-origins: http://localhost:8081
+#logging:
+#  level:
+#    org.hibernate.SQL: INFO
+#    # org.hibernate.type.descriptor.sql.BasicBinder: TRACE

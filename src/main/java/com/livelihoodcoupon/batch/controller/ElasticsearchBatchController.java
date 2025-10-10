@@ -45,42 +45,6 @@ public class ElasticsearchBatchController {
 	@Value("${batch.csv.file.path}")
 	private String csvFilePath;
 
-	// @PostMapping("/all-csv")
-	// public ResponseEntity<CustomApiResponse<?>> runCsvToEsBatchFullReload() {
-	// 	try {
-	// 		log.info("CSV to ES 전체 재구성 배치 작업 시작 요청됨");
-	// 		Resource[] resources = resourcePatternResolver.getResources("file:" + csvFilePath + "/*.csv");
-	// 		String fileResources = Arrays.stream(resources)
-	// 			.map(r -> {
-	// 				try {
-	// 					return r.getURL().toString();
-	// 				} catch (IOException e) {
-	// 					log.error("리소스 URL을 가져오는 데 실패했습니다.", e);
-	// 					return null;
-	// 				}
-	// 			})
-	// 			.filter(s -> s != null)
-	// 			.collect(Collectors.joining(","));
-	//
-	// 		if (fileResources.isEmpty()) {
-	// 			log.warn("처리할 CSV 파일이 없습니다.");
-	// 			return ResponseEntity.ok(
-	// 				CustomApiResponse.success("처리할 CSV 파일이 없어 배치 작업을 시작하지 않았습니다.")
-	// 			);
-	// 		}
-	//
-	// 		startBatchJobAsync(placeCsvToEsJob, "placeCsvToEsJob", fileResources);
-	// 		return ResponseEntity.ok(
-	// 			CustomApiResponse.success("CSV to ES 전체 재구성 배치 작업이 백그라운드에서 시작되었습니다.")
-	// 		);
-	// 	} catch (Exception e) {
-	// 		log.error("CSV to ES 전체 재구성 배치 작업 시작 중 오류 발생", e);
-	// 		return ResponseEntity.internalServerError()
-	// 			.body(CustomApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR,
-	// 				"배치 작업 시작 중 오류가 발생했습니다: " + e.getMessage()));
-	// 	}
-	// }
-
 	@PostMapping("/new-csv")
 	public ResponseEntity<CustomApiResponse<?>> runCsvToEsBatchIncremental() {
 		try {

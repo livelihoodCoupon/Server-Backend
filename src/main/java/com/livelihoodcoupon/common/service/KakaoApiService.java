@@ -175,4 +175,5 @@ public class KakaoApiService {
 			.bodyToMono(JsonNode.class)
 			.block();
 	}
+
 }

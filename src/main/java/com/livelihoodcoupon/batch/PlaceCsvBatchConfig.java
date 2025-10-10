@@ -2,6 +2,8 @@ package com.livelihoodcoupon.batch;
 
 import java.io.IOException;
 
+import jakarta.persistence.EntityManagerFactory;
+
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
@@ -29,10 +31,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import com.livelihoodcoupon.place.entity.Place;
-import com.livelihoodcoupon.place.repository.PlaceRepository;
-import com.livelihoodcoupon.place.service.PlaceIdRedisCacheService;
 
-import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,9 +44,7 @@ public class PlaceCsvBatchConfig {
 	private final JobRepository jobRepository;
 	private final PlatformTransactionManager platformTransactionManager;
 	private final EntityManagerFactory entityManagerFactory;
-	private final ResourcePatternResolver resourcePatternResolver; // ResourcePatternResolver 주입
-	private final PlaceRepository placeRepository; // 중복 확인을 위한 PlaceRepository 주입
-	private final PlaceIdRedisCacheService placeIdRedisCacheService; // PlaceIdRedisCacheService 주입
+	private final ResourcePatternResolver resourcePatternResolver;
 
 	@Bean
 	public Job placeCsvJob() {
@@ -60,9 +57,14 @@ public class PlaceCsvBatchConfig {
 	public Step placeCsvStep() {
 		return new StepBuilder("placeCsvStep", jobRepository)
 			.<PlaceCsvDto, Place>chunk(1000, platformTransactionManager)
-			.reader(multiResourceItemReader(null)) // 초기값은 null, 실제 값은 application.yml에서 로드
-			.processor(placeCsvProcessor())
+			.reader(multiResourceItemReader(null))
+			.processor(placeCsvProcessor()) // @StepScope 프록시 객체 전달
 			.writer(placeCsvWriter())
+			// 내결함성 추가: DB에 중복 키 제약조건 위반 등 모든 예외 발생 시 해당 건만 skip
+			.faultTolerant()
+			.skip(Exception.class)
+			.skipLimit(Integer.MAX_VALUE)
+			.listener(new com.livelihoodcoupon.batch.listener.CustomSkipListener())
 			.build();
 	}
 
@@ -110,15 +112,28 @@ public class PlaceCsvBatchConfig {
 	}
 
 	@Bean
+	@StepScope // Step 실행 범위에서 생성되도록 변경
 	public ItemProcessor<PlaceCsvDto, Place> placeCsvProcessor() {
 		return item -> {
-			// Redis 캐시를 사용하여 placeId 중복 확인
-			if (placeIdRedisCacheService.contains(item.getPlaceId())) {
-				log.debug("중복된 placeId (Redis 캐시에서): {} 건너뜀", item.getPlaceId());
-				return null; // Redis 캐시에 이미 존재하는 아이템은 건너뜀
-			}
-			// 새로운 아이템인 경우 Redis 캐시에 추가
-			placeIdRedisCacheService.add(item.getPlaceId());
+
+			// --- SQL 로직 기반 필드 분리 시작 ---
+			String[] roadAddressParts =
+				item.getRoadAddress() != null ? item.getRoadAddress().split(" ") : new String[0];
+			String roadAddressSido = roadAddressParts.length > 0 ? roadAddressParts[0] : null;
+			String roadAddressSigungu = roadAddressParts.length > 1 ? roadAddressParts[1] : null;
+			String roadAddressRoad = roadAddressParts.length > 2 ? roadAddressParts[2] : null;
+
+			String[] lotAddressParts = item.getLotAddress() != null ? item.getLotAddress().split(" ") : new String[0];
+			String roadAddressDong = lotAddressParts.length > 2 ? lotAddressParts[2] : null;
+
+			String[] categoryParts =
+				item.getCategoryName() != null ? item.getCategoryName().split(" > ") : new String[0];
+			String categoryLevel1 = categoryParts.length > 0 ? categoryParts[0].trim() : null;
+			String categoryLevel2 = categoryParts.length > 1 ? categoryParts[1].trim() : null;
+			String categoryLevel3 = categoryParts.length > 2 ? categoryParts[2].trim() : null;
+			String categoryLevel4 = categoryParts.length > 3 ? categoryParts[3].trim() : null;
+			// --- SQL 로직 기반 필드 끝 ---
+
 			GeometryFactory geometryFactory = new GeometryFactory();
 			WKTReader wktReader = new WKTReader(geometryFactory);
 			Point point = null;
@@ -146,6 +161,15 @@ public class PlaceCsvBatchConfig {
 				.categoryGroupName(item.getCategoryGroupName())
 				.placeUrl(item.getPlaceUrl())
 				.location(point)
+				// 분리된 주소 및 카테고리 필드 추가
+				.roadAddressSido(roadAddressSido)
+				.roadAddressSigungu(roadAddressSigungu)
+				.roadAddressRoad(roadAddressRoad)
+				.roadAddressDong(roadAddressDong)
+				.categoryLevel1(categoryLevel1)
+				.categoryLevel2(categoryLevel2)
+				.categoryLevel3(categoryLevel3)
+				.categoryLevel4(categoryLevel4)
 				.build();
 		};
 	}

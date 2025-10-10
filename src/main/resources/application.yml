@@ -7,7 +7,7 @@ spring:
     active: dev
     include: local # 항상 local 프로파일 포함
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -27,6 +27,12 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+
+  batch:
+    job:
+      enabled: false # 애플리케이션 시작 시 자동 배치 실행 비활성화
+    jdbc:
+      initialize-schema: always
 
 # OSRM 설정
 osrm:
@@ -49,3 +55,8 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:elasticsearch}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:http}

@@ -17,11 +17,15 @@ public class RedisService {
 	private final String searchPrefix = "word:";
 
 	private final RedisTemplate<String, String> redisTemplate;
-	private final HashOperations<String, String, String> hashOps;
+	//private final HashOperations<String, String, String> hashOps;
 
 	public RedisService(RedisTemplate<String, String> redisTemplate) {
 		this.redisTemplate = redisTemplate;
-		this.hashOps = redisTemplate.opsForHash();
+		//this.hashOps = redisTemplate.opsForHash();
+	}
+
+	private HashOperations<String, String, String> hashOps() {
+		return redisTemplate.opsForHash();
 	}
 
 	/**
@@ -41,10 +45,10 @@ public class RedisService {
 	 */
 	public void saveWord(String word, String field, String subfield, String parent) {
 		String key = searchPrefix + word;
-		hashOps.put(key, "field", field);
-		hashOps.put(key, "subfield", subfield);
-		hashOps.put(key, "parent", parent == null ? "" : parent);
-		log.info("Redis 저장: key={}, field={}, subfield={}, parent={}", key, field, subfield, parent);
+		hashOps().put(key, "field", field);
+		hashOps().put(key, "subfield", subfield);
+		hashOps().put(key, "parent", parent == null ? "" : parent);
+		//log.info("Redis 저장: key={}, field={}, subfield={}, parent={}", key, field, subfield, parent);
 	}
 
 	/**
@@ -54,7 +58,7 @@ public class RedisService {
 	 */
 	public Map<String, String> getWordMap(String word) {
 		String key = searchPrefix + word;
-		return hashOps.entries(key);  // 해당 단어의 모든 필드 값 반환
+		return hashOps().entries(key);  // 해당 단어의 모든 필드 값 반환
 	}
 
 	/**
@@ -64,6 +68,10 @@ public class RedisService {
 	 */
 	public String getWordInfo(String word) {
 		String key = searchPrefix + word;
-		return hashOps.entries(key).get("field");  // 해당 단어의 모든 필드 값 반환
+		String value = hashOps().entries(key).get("field");
+		if (value == null || value.isEmpty() || value.trim().isEmpty()) {
+			return "";
+		}
+		return value;  // 해당 단어의 모든 필드 값 반환
 	}
 }

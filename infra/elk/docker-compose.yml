@@ -1,10 +1,14 @@
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1 # Use a specific version compatible with Logstash/Kibana
+    #image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1 # Use a specific version compatible with Logstash/Kibana
+    #nori tokenizer 추가
+    build:
+      context: ./
+      dockerfile: Dockerfile
     container_name: livelihoodCoupon-elasticsearch
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
     ports:
       - "${ELASTICSEARCH_PORT:-9200}:9200" # HTTP

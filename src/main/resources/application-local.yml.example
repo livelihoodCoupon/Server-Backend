@@ -1,8 +1,10 @@
 # Copy this file to create "application-local.yml".
 # Override it by adding any information that differs from "application-dev.yml".
+
 kakao:
-api:
-key:your-personal-kakao-api-key
+  api:
+    key: your-personal-kakao-api-key
+
 spring:
 #  datasource:
 #    url: ## If the information is different, please remove the comment and use it.
@@ -18,6 +20,11 @@ spring:
 #  csv:
 #    file:
 #      path: data/csv
+#    incremental-path: data/new-csv/
 #
 #cors:
 #  allowed-origins: http://localhost:8081
+#logging:
+#  level:
+#    org.hibernate.SQL: INFO
+#    # org.hibernate.type.descriptor.sql.BasicBinder: TRACE

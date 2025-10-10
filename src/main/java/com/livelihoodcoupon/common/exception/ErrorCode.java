@@ -24,7 +24,10 @@ public enum ErrorCode {
 	ROUTE_NOT_FOUND(HttpStatus.NOT_FOUND, "R003", "경로를 찾을 수 없습니다"),
 	KAKAO_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R004", "카카오 API 서비스 오류가 발생했습니다"),
 	OSRM_API_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "R005", "OSRM 서비스 오류가 발생했습니다"),
-	INVALID_COORDINATES(HttpStatus.BAD_REQUEST, "R006", "유효하지 않은 좌표입니다");
+	INVALID_COORDINATES(HttpStatus.BAD_REQUEST, "R006", "유효하지 않은 좌표입니다"),
+
+	//Batch
+	CONFLICT(HttpStatus.CONFLICT, "B001", "이미 실행 중입니다.");
 
 	private final HttpStatus status;
 	private final String code;

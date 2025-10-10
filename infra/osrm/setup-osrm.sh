@@ -22,7 +22,7 @@ docker run --rm -v $(pwd)/data/temp_car:/data osrm/osrm-backend osrm-extract -p 
 docker run --rm -v $(pwd)/data/temp_car:/data osrm/osrm-backend osrm-partition /data/south-korea-latest.osrm
 docker run --rm -v $(pwd)/data/temp_car:/data osrm/osrm-backend osrm-customize /data/south-korea-latest.osrm
 # car 프로파일용 파일들 복사
-cp data/temp_car/south-korea-latest.osrm data/south-korea-latest.car.osrm
+cp data/temp_car/south-korea-latest.osrm.osrm data/south-korea-latest.car.osrm
 for file in data/temp_car/south-korea-latest.osrm.*; do
     if [[ $file != *.pbf ]]; then
         cp "$file" "data/south-korea-latest.car.osrm${file#data/temp_car/south-korea-latest.osrm}"
@@ -39,7 +39,7 @@ docker run --rm -v $(pwd)/data/temp_foot:/data osrm/osrm-backend osrm-extract -p
 docker run --rm -v $(pwd)/data/temp_foot:/data osrm/osrm-backend osrm-partition /data/south-korea-latest.osrm
 docker run --rm -v $(pwd)/data/temp_foot:/data osrm/osrm-backend osrm-customize /data/south-korea-latest.osrm
 # foot 프로파일용 파일들 복사
-cp data/temp_foot/south-korea-latest.osrm data/south-korea-latest.foot.osrm
+cp data/temp_foot/south-korea-latest.osrm.osrm data/south-korea-latest.foot.osrm
 for file in data/temp_foot/south-korea-latest.osrm.*; do
     if [[ $file != *.pbf ]]; then
         cp "$file" "data/south-korea-latest.foot.osrm${file#data/temp_foot/south-korea-latest.osrm}"
@@ -56,7 +56,7 @@ docker run --rm -v $(pwd)/data/temp_bike:/data osrm/osrm-backend osrm-extract -p
 docker run --rm -v $(pwd)/data/temp_bike:/data osrm/osrm-backend osrm-partition /data/south-korea-latest.osrm
 docker run --rm -v $(pwd)/data/temp_bike:/data osrm/osrm-backend osrm-customize /data/south-korea-latest.osrm
 # bike 프로파일용 파일들 복사
-cp data/temp_bike/south-korea-latest.osrm data/south-korea-latest.bike.osrm
+cp data/temp_bike/south-korea-latest.osrm.osrm data/south-korea-latest.bike.osrm
 for file in data/temp_bike/south-korea-latest.osrm.*; do
     if [[ $file != *.pbf ]]; then
         cp "$file" "data/south-korea-latest.bike.osrm${file#data/temp_bike/south-korea-latest.osrm}"

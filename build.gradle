@@ -45,6 +45,8 @@ dependencies {
     testImplementation "org.testcontainers:testcontainers:1.20.5" // testcontainers
     testImplementation 'org.testcontainers:postgresql:1.20.5' // PostgreSQL 모듈
     testImplementation "org.testcontainers:junit-jupiter:1.20.5" // JUnit 5 연동
+    testImplementation "org.mockito:mockito-core:5.2.0"  // 기본 Mockito
+    testImplementation "org.mockito:mockito-inline:5.2.0" // final 클래스 mocking 필요 시
 
     // 로깅, 모니터링 관련
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -67,11 +69,16 @@ dependencies {
     implementation 'io.github.cdimascio:dotenv-java:3.0.0' // 5.x가 아닌 안정된 3.x
 
     //단어 형태소 분석기
-    dependencies {
-        implementation 'com.github.shin285:komoran:3.3.4'  // 최신 버전 확인 권장
-    }
+    implementation 'com.github.shin285:komoran:3.3.4'  // 최신 버전 확인 권장
 
+    // Elasticsearch Java Client 8.x
+    implementation 'co.elastic.clients:elasticsearch-java:8.14.0'  // 또는 최신 안정 버전
 
+    //@Value 의존서 추가
+    implementation 'org.springframework:spring-context'
+
+    //offsetDatTime 매핑 추가
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }
 
 checkstyle {
@@ -100,4 +107,3 @@ tasks.named('test') {
 tasks.named('checkstyleTest') {
     enabled = false
 }
-

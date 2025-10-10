@@ -2,12 +2,6 @@ package com.livelihoodcoupon.batch;
 
 import java.io.IOException;
 
-import jakarta.persistence.EntityManagerFactory;
-
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
@@ -15,7 +9,7 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.database.JpaItemWriter;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.MultiResourceItemReader;
@@ -30,8 +24,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import com.livelihoodcoupon.place.entity.Place;
+import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.search.entity.PlaceDocument;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.BulkRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,84 +36,74 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 @RequiredArgsConstructor
 @Profile("!test")
-public class PlaceCsvBatchConfig {
+public class PlaceCsvToEsIncrementalAddBatchConfig {
 
 	private final JobRepository jobRepository;
 	private final PlatformTransactionManager platformTransactionManager;
-	private final EntityManagerFactory entityManagerFactory;
 	private final ResourcePatternResolver resourcePatternResolver;
+	private final ElasticsearchClient elasticsearchClient;
 
 	@Bean
-	public Job placeCsvJob() {
-		return new JobBuilder("placeCsvJob", jobRepository)
-			.start(placeCsvStep())
+	public Job placeCsvToEsIncrementalAddJob() {
+		return new JobBuilder("placeCsvToEsIncrementalAddJob", jobRepository)
+			.start(placeCsvToEsIncrementalAddStep())
 			.build();
 	}
 
 	@Bean
-	public Step placeCsvStep() {
-		return new StepBuilder("placeCsvStep", jobRepository)
-			.<PlaceCsvDto, Place>chunk(1000, platformTransactionManager)
-			.reader(multiResourceItemReader(null))
-			.processor(placeCsvProcessor()) // @StepScope 프록시 객체 전달
-			.writer(placeCsvWriter())
-			// 내결함성 추가: DB에 중복 키 제약조건 위반 등 모든 예외 발생 시 해당 건만 skip
+	public Step placeCsvToEsIncrementalAddStep() {
+		return new StepBuilder("placeCsvToEsIncrementalAddStep", jobRepository)
+			.<PlaceCsvDto, PlaceDocument>chunk(1000, platformTransactionManager)
+			.reader(esIncrementalMultiResourceItemReader(null))
+			.processor(esIncrementalProcessor())
+			.writer(esIncrementalWriter())
 			.faultTolerant()
 			.skip(Exception.class)
 			.skipLimit(Integer.MAX_VALUE)
-			.listener(new com.livelihoodcoupon.batch.listener.CustomSkipListener())
 			.build();
 	}
 
-	// MultiResourceItemReader를 위한 FlatFileItemReader 델리게이트
-	private FlatFileItemReader<PlaceCsvDto> placeCsvReaderDelegate() {
+	private FlatFileItemReader<PlaceCsvDto> esIncrementalReaderDelegate() {
 		FlatFileItemReader<PlaceCsvDto> flatFileItemReader = new FlatFileItemReader<>();
-		flatFileItemReader.setLinesToSkip(1); // 헤더 스킵
-		flatFileItemReader.setLineMapper(placeCsvLineMapper());
+		flatFileItemReader.setLinesToSkip(1);
+		flatFileItemReader.setLineMapper(esIncrementalLineMapper());
 		return flatFileItemReader;
 	}
 
 	@Bean
 	@StepScope
-	public MultiResourceItemReader<PlaceCsvDto> multiResourceItemReader(
-		@Value("${batch.csv.file.path}") String csvFilePath) {
+	public MultiResourceItemReader<PlaceCsvDto> esIncrementalMultiResourceItemReader(
+		@Value("${batch.csv.incremental-path}") String csvFilePath) {
 		MultiResourceItemReader<PlaceCsvDto> reader = new MultiResourceItemReader<>();
 		try {
 			Resource[] resources = resourcePatternResolver.getResources("file:" + csvFilePath + "/*.csv");
 			reader.setResources(resources);
 		} catch (IOException e) {
-			log.error("CSV 리소스 경로에서 파일을 로드하는 중 오류 발생: {}", csvFilePath, e);
-			throw new RuntimeException("CSV 리소스 로드 실패", e);
+			log.error("증분 CSV 리소스 경로에서 파일을 로드하는 중 오류 발생: {}", csvFilePath, e);
+			throw new RuntimeException("증분 CSV 리소스 로드 실패", e);
 		}
-		reader.setDelegate(placeCsvReaderDelegate());
+		reader.setDelegate(esIncrementalReaderDelegate());
 		return reader;
 	}
 
 	@Bean
-	public LineMapper<PlaceCsvDto> placeCsvLineMapper() {
+	public LineMapper<PlaceCsvDto> esIncrementalLineMapper() {
 		DefaultLineMapper<PlaceCsvDto> defaultLineMapper = new DefaultLineMapper<>();
-
 		DelimitedLineTokenizer delimitedLineTokenizer = new DelimitedLineTokenizer();
 		delimitedLineTokenizer.setNames("placeId", "region", "placeName", "roadAddress", "lotAddress", "lat", "lng",
 			"phone", "categoryName", "keyword", "categoryGroupCode", "categoryGroupName", "placeUrl");
 		delimitedLineTokenizer.setDelimiter(",");
-		delimitedLineTokenizer.setStrict(false); // 컬럼 수 불일치 허용
-
+		delimitedLineTokenizer.setStrict(false);
 		BeanWrapperFieldSetMapper<PlaceCsvDto> beanWrapperFieldSetMapper = new BeanWrapperFieldSetMapper<>();
 		beanWrapperFieldSetMapper.setTargetType(PlaceCsvDto.class);
-
 		defaultLineMapper.setLineTokenizer(delimitedLineTokenizer);
 		defaultLineMapper.setFieldSetMapper(beanWrapperFieldSetMapper);
-
 		return defaultLineMapper;
 	}
 
 	@Bean
-	@StepScope // Step 실행 범위에서 생성되도록 변경
-	public ItemProcessor<PlaceCsvDto, Place> placeCsvProcessor() {
+	public ItemProcessor<PlaceCsvDto, PlaceDocument> esIncrementalProcessor() {
 		return item -> {
-
-			// --- SQL 로직 기반 필드 분리 시작 ---
 			String[] roadAddressParts =
 				item.getRoadAddress() != null ? item.getRoadAddress().split(" ") : new String[0];
 			String roadAddressSido = roadAddressParts.length > 0 ? roadAddressParts[0] : null;
@@ -132,23 +119,8 @@ public class PlaceCsvBatchConfig {
 			String categoryLevel2 = categoryParts.length > 1 ? categoryParts[1].trim() : null;
 			String categoryLevel3 = categoryParts.length > 2 ? categoryParts[2].trim() : null;
 			String categoryLevel4 = categoryParts.length > 3 ? categoryParts[3].trim() : null;
-			// --- SQL 로직 기반 필드 끝 ---
 
-			GeometryFactory geometryFactory = new GeometryFactory();
-			WKTReader wktReader = new WKTReader(geometryFactory);
-			Point point = null;
-			try {
-				// CSV의 위도(lat)와 경도(lng)를 Point 객체로 변환
-				// WKT 형식: POINT (경도 위도)
-				String wktPoint = String.format("POINT (%s %s)", item.getLng(), item.getLat());
-				point = (Point)wktReader.read(wktPoint);
-				point.setSRID(4326); // SRID를 WGS84 (4326)으로 설정
-			} catch (ParseException e) {
-				log.error("placeId: {} 에 대한 WKT 파싱 오류 발생", item.getPlaceId(), e);
-				return null; // 파싱 실패 시 해당 아이템 건너뜀
-			}
-
-			return Place.builder()
+			return PlaceDocument.builder()
 				.placeId(item.getPlaceId())
 				.region(item.getRegion())
 				.placeName(item.getPlaceName())
@@ -160,8 +132,7 @@ public class PlaceCsvBatchConfig {
 				.categoryGroupCode(item.getCategoryGroupCode())
 				.categoryGroupName(item.getCategoryGroupName())
 				.placeUrl(item.getPlaceUrl())
-				.location(point)
-				// 분리된 주소 및 카테고리 필드 추가
+				.location(new Coordinate(item.getLng(), item.getLat()))
 				.roadAddressSido(roadAddressSido)
 				.roadAddressSigungu(roadAddressSigungu)
 				.roadAddressRoad(roadAddressRoad)
@@ -175,9 +146,31 @@ public class PlaceCsvBatchConfig {
 	}
 
 	@Bean
-	public JpaItemWriter<Place> placeCsvWriter() {
-		JpaItemWriter<Place> jpaItemWriter = new JpaItemWriter<>();
-		jpaItemWriter.setEntityManagerFactory(entityManagerFactory);
-		return jpaItemWriter;
+	public ItemWriter<PlaceDocument> esIncrementalWriter() {
+		return chunk -> {
+			if (chunk.getItems().isEmpty()) {
+				return;
+			}
+			log.info("Writing {} items to Elasticsearch.", chunk.getItems().size());
+
+			BulkRequest.Builder br = new BulkRequest.Builder();
+
+			for (PlaceDocument doc : chunk.getItems()) {
+				br.operations(op -> op
+					.index(idx -> idx
+						.index("places")
+						.id(doc.getPlaceId())
+						.document(doc)
+					)
+				);
+			}
+
+			try {
+				elasticsearchClient.bulk(br.build());
+			} catch (IOException e) {
+				log.error("Elasticsearch bulk indexing failed.", e);
+				throw new RuntimeException("Elasticsearch bulk indexing failed", e);
+			}
+		};
 	}
 }

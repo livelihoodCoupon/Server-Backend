@@ -173,8 +173,14 @@ public class OsrmRouteProvider implements RouteProvider {
 		List<RouteStep> steps = new ArrayList<>();
 		if (leg.getSteps() != null) {
 			for (OsrmStep step : leg.getSteps()) {
+				// OSRM maneuver type과 modifier를 기반으로 한국어 instruction 생성
+				String instruction = generateInstruction(
+					step.getManeuver().getType(),
+					step.getManeuver().getModifier()
+				);
+
 				steps.add(RouteStep.builder()
-					.instruction(step.getManeuver().getInstruction())
+					.instruction(instruction)
 					.distance(step.getDistance())
 					.duration(step.getDuration())
 					.startLocation(Coordinate.builder()
@@ -196,6 +202,72 @@ public class OsrmRouteProvider implements RouteProvider {
 			.routeType(routeType)
 			.steps(steps)
 			.build();
+	}
+
+	/**
+	 * OSRM maneuver type과 modifier를 기반으로 한국어 instruction을 생성합니다.
+	 */
+	private String generateInstruction(String type, String modifier) {
+		if (type == null) {
+			return "경로 안내";
+		}
+
+		return switch (type.toLowerCase()) {
+			case "depart" -> "출발지";
+			case "arrive" -> "목적지";
+			case "turn" -> generateTurnInstruction(modifier);
+			case "continue" -> generateContinueInstruction(modifier);
+			case "merge" -> "합류";
+			case "on ramp" -> "진입";
+			case "off ramp" -> "진출";
+			case "fork" -> "분기점";
+			case "roundabout" -> "회전교차로";
+			case "rotary" -> "로터리";
+			case "roundabout turn" -> "회전교차로에서 " + generateTurnInstruction(modifier);
+			case "notification" -> "알림";
+			case "exit roundabout" -> "회전교차로 진출";
+			case "exit rotary" -> "로터리 진출";
+			default -> "직진";
+		};
+	}
+
+	/**
+	 * 회전 방향에 따른 instruction을 생성합니다.
+	 */
+	private String generateTurnInstruction(String modifier) {
+		if (modifier == null) {
+			return "회전";
+		}
+
+		return switch (modifier.toLowerCase()) {
+			case "left" -> "왼쪽으로";
+			case "right" -> "오른쪽으로";
+			case "sharp left" -> "좌회전";
+			case "sharp right" -> "우회전";
+			case "slight left" -> "왼쪽 방향으로";
+			case "slight right" -> "오른쪽 방향으로";
+			case "straight" -> "직진";
+			case "uturn" -> "유턴";
+			default -> "회전";
+		};
+	}
+
+	/**
+	 * 계속 진행 방향에 따른 instruction을 생성합니다.
+	 */
+	private String generateContinueInstruction(String modifier) {
+		if (modifier == null) {
+			return "직진";
+		}
+
+		return switch (modifier.toLowerCase()) {
+			case "left" -> "왼쪽으로 계속";
+			case "right" -> "오른쪽으로 계속";
+			case "slight left" -> "왼쪽 방향으로 계속";
+			case "slight right" -> "오른쪽 방향으로 계속";
+			case "straight" -> "직진";
+			default -> "계속 진행";
+		};
 	}
 
 	// OSRM 응답 DTO 클래스들
@@ -237,6 +309,8 @@ public class OsrmRouteProvider implements RouteProvider {
 	@Getter
 	public static class OsrmManeuver {
 		private String instruction;
+		private String type;        // OSRM maneuver type (depart, turn, arrive, etc.)
+		private String modifier;    // OSRM maneuver modifier (left, right, straight, etc.)
 		private double[] location;
 
 	}

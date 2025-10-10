@@ -24,80 +24,97 @@ import co.elastic.clients.elasticsearch.indices.AnalyzeResponse;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
 import co.elastic.clients.elasticsearch.indices.analyze.AnalyzeToken;
 
-//@SuppressWarnings("unchecked")
-@DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
+@DisplayName("SearchService 단위 테스트")
 class AnalyzerTestTest {
+
 	@Mock
 	ElasticsearchClient mockClient;
+
 	@Mock
 	DictCacheService mockDictCacheService;
+
 	@InjectMocks
 	AnalyzerTest analyzerTest;
 
+	@Mock
+	private ElasticsearchIndicesClient indicesClient;
+
+	@Mock
+	private AnalyzeResponse analyzeResponse;
+
 	@BeforeEach
 	void setup() {
-		//mockClient = mock(ElasticsearchClient.class);
-		//mockDictCacheService = mock(DictCacheService.class);
-		//analyzerTest = new AnalyzerTest(mockClient, mockDictCacheService);
+		analyzerTest = new AnalyzerTest(mockClient, mockDictCacheService);
 	}
 
 	@Test
 	@DisplayName("nori tokenizer 글자 분리테스트 성공")
 	void testAnalyzeText() throws IOException {
-		//given
-		// 1. mock 생성
-		ElasticsearchClient mockClient = mock(ElasticsearchClient.class);
-		ElasticsearchIndicesClient mockIndices = mock(ElasticsearchIndicesClient.class);
-		AnalyzeResponse mockResponse = mock(AnalyzeResponse.class);
 
-		// 2. mock 관계 설정
-		when(mockClient.indices()).thenReturn(mockIndices);
-		when(mockIndices.analyze(any(AnalyzeRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.tokens()).thenReturn(List.of(
-			AnalyzeToken.of(t -> t
-				.token("종로")
-				.startOffset(0)
-				.endOffset(2)
-				.position(0)
-				.type("word")
-			),
-			AnalyzeToken.of(t -> t
-				.token("참치")
-				.startOffset(3)
-				.endOffset(5)
-				.position(1)
-				.type("word")
-			)
-		));
+		String text = "종로 참치";
 
-		// 3. 테스트 대상 인스턴스 생성
-		DictCacheService mockDictCacheService = mock(DictCacheService.class);
 		when(mockDictCacheService.containsAddress("종로")).thenReturn(true);
 		when(mockDictCacheService.containsCategory("참치")).thenReturn(false);
 
-		//when
-		AnalyzerTest analyzerTest = new AnalyzerTest(mockClient, mockDictCacheService);
+		// mock 연결
+		when(mockClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.analyze(any(AnalyzeRequest.class))).thenReturn(analyzeResponse);
+		List<AnalyzeToken> tokenList = List.of(
+			AnalyzeToken.of(t -> t.token("종로").startOffset(0)
+				.endOffset(2).position(1).type("")),
+			AnalyzeToken.of(t -> t.token("참치").startOffset(3)
+				.endOffset(5).position(2).type(""))
+		);
+		when(analyzeResponse.tokens()).thenReturn(tokenList);
 
-		var result = analyzerTest.analyzeText("종로 참치");
+		//when
+		List<NoriToken> noriTokens = analyzerTest.analyzeText(text);
 
 		//then
-		assertEquals(2, result.size());
-		assertEquals("종로", result.get(0).getToken());
+		assertEquals(2, noriTokens.size());
+		assertEquals("종로", noriTokens.get(0).getToken());
 	}
 
 	@Test
-	@DisplayName("문장분리 구분하기 테스트 성공")
-	void TestisCategoryAddress() throws IOException {
+	@DisplayName("분리된 단어 단어 address 여부 체크")
+	void TestisCategoryAddress_check1() throws IOException {
+		//give
+		String checkCategory = "address";
+		when(mockDictCacheService.containsAddress("서울시")).thenReturn(true);
+
+		//when
+		var result = analyzerTest.isCategoryAddress("서울시");
+
+		//then
+		assertEquals(checkCategory, result);
+	}
+
+	@Test
+	@DisplayName("분리된 단어 단어 category 여부 체크")
+	void TestisCategoryAddress_check2() throws IOException {
+		//give
+		String checkCategory = "category";
+		when(mockDictCacheService.containsCategory("카페")).thenReturn(true);
+
+		//when
+		var result = analyzerTest.isCategoryAddress("카페");
+
+		//then
+		assertEquals(checkCategory, result);
+	}
+
+	@Test
+	@DisplayName("분리된 단어 단어 place_name 여부 체크")
+	void TestisCategoryAddress_check3() throws IOException {
 		//give
 		String checkCategory = "place_name";
 
 		//when
-		var result = analyzerTest.isCategoryAddress("종로 참치");
+		var result = analyzerTest.isCategoryAddress("박철헤어");
 
 		//then
 		assertEquals(checkCategory, result);
-
 	}
 
 	@Test
@@ -114,6 +131,5 @@ class AnalyzerTestTest {
 
 		//then
 		assertEquals(address, result);
-
 	}
 }

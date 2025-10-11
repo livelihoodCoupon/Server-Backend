@@ -41,7 +41,6 @@ jobs:
           port: 22
           strip_components: 0
           overwrite: true
-            -
 
       # 5. 서버에서 stop.sh → .env 생성 → start.sh 실행
       - name: Restart all services

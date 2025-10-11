@@ -64,23 +64,23 @@ jobs:
             SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             
-            PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT:-9090 }}
-            GRAFANA_PORT=${{ secrets.GRAFANA_PORT:-3001 }}
+            PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
+            GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
             GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             
-            ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST:-localhost }}
-            ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT:-9200 }}
-            ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME:-http }}
-            ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT:-9300 }}
+            ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST }}
+            ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+            ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME }}
+            ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
             
-            KIBANA_PORT=${{ secrets.KIBANA_PORT:-5601 }}
-            LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT:-5044 }}
-            LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT:-9600 }}
+            KIBANA_PORT=${{ secrets.KIBANA_PORT }}
+            LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
+            LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
             
-            OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL:-http://localhost:5004 }}
-            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL:-http://localhost:5001 }}
-            OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL:-http://localhost:5002 }}
+            OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
+            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
+            OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
             EOF
             
             # 3) start.sh 권한 + 실행

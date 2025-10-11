@@ -74,9 +74,6 @@ jobs:
             KIBANA_PORT=${{ secrets.KIBANA_PORT }}
             LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
             LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
-            OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
-            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
-            OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
             EOF
 
             # start.sh 권한 + 실행s

@@ -41,44 +41,43 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            
             cd ~/deploy
 
             #### .env 파일 생성
             cat > .env <<EOF
-            export KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
+            KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
             
-            export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-            export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            export POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
             
-            export REDIS_AOF=${{ secrets.REDIS_AOF }}
-            export REDIS_PORT=${{ secrets.REDIS_PORT }}
-            export SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
-            export SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
+            REDIS_AOF=${{ secrets.REDIS_AOF }}
+            REDIS_PORT=${{ secrets.REDIS_PORT }}
+            SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
+            SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             
-            export PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
-            export GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
-            export GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
-            export GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+            PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
+            GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
+            GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             
-            export ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST }}
-            export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
-            export ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME }}
-            export ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
+            ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST }}
+            ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+            ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME }}
+            ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
             
-            export KIBANA_PORT=${{ secrets.KIBANA_PORT }}
-            export LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
-            export LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
+            KIBANA_PORT=${{ secrets.KIBANA_PORT }}
+            LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
+            LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
             
-            export OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
-            export OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
-            export OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
-            export OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
+            OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
+            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
+            OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
+            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
             EOF
-
-            ###기존 서비스 종료
-            ./infra/scripts/stop.sh
-
-            ###새로운 서비스 시작
-            ./infra/scripts/start.sh
+            
+            chmod +x ~/deploy/infra/scripts/*.sh
+            sudo ./infra/scripts/stop.sh
+            sudo ./infra/scripts/start.sh

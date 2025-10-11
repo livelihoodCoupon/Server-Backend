@@ -44,7 +44,7 @@ jobs:
             
             cd ~/deploy
 
-            #### .env 파일 생성
+            #### .env 파일 생성f
             cat > .env <<EOF
             KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
             
@@ -75,7 +75,6 @@ jobs:
             OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
             OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
             OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
-            OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
             EOF
             
             chmod +x ~/deploy/infra/scripts/*.sh

@@ -32,14 +32,10 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: |
-            src/**
-            infra/**
-            Dockerfile
-            docker-compose.yml
+          source: src/**, infra/**, Dockerfile, docker-compose.yml
           target: "~/deploy/"
           port: 22
-          overwrite: "true"
+          overwrite: true
           strip_components: 0
 
       # 5. 서버에서 stop.sh → .env 생성 → start.sh

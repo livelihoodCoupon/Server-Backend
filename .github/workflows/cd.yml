@@ -13,6 +13,8 @@ jobs:
       # 1. 코드 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       # 2. Docker 설치
       - name: Set up Docker
@@ -21,9 +23,9 @@ jobs:
       # 3. Backend Docker 이미지 빌드
       - name: Build backend Docker image
         run: |
-          docker build -t backend/springboot-app:latest .
+          docker build -t springboot-app:latest .
 
-      # 4. 전체 프로젝트 파일 EC2로 전송
+      # 4. EC2로 파일 전송
       - name: Copy project to EC2
         uses: appleboy/scp-action@v0.1.5
         with:
@@ -31,18 +33,16 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: |
-            ./src/**
-            ./infra/**
-            ./docker-compose.yml
-            ./Dockerfile
-            !.git/**
-            !.env-example
+            src/**
+            infra/**
+            Dockerfile
+            docker-compose.yml
           target: "~/deploy/"
           port: 22
+          overwrite: "true"
           strip_components: 0
-          overwrite: true
 
-      # 5. 서버에서 stop.sh → .env 생성 → start.sh 실행
+      # 5. 서버에서 stop.sh → .env 생성 → start.sh
       - name: Restart all services
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -50,52 +50,39 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            
-            # 배포 디렉터리 생성 및 소유자 권한 부여
-            sudo mkdir -p ~/deploy
-            sudo chown -R $USER:$USER ~/deploy
-            sudo chmod -R 777 ~/deploy
-            
-            
             cd ~/deploy
 
-            # 1) stop.sh 권한 + 실행
+            # stop.sh 권한 + 실행
             chmod +x ./infra/scripts/stop.sh
             sudo ./infra/scripts/stop.sh
 
-            # 2) .env 생성
+            # .env 파일 생성
             cat > .env <<EOF
             KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
-            
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
-            
             REDIS_AOF=${{ secrets.REDIS_AOF }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
             SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
-            
             PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
             GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
             GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-            
             ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST }}
             ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
             ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME }}
             ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
-            
             KIBANA_PORT=${{ secrets.KIBANA_PORT }}
-            LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
+            LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}v
             LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
-            
             OSRM_CAR_URL=${{ secrets.OSRM_CAR_URL }}
             OSRM_FOOT_URL=${{ secrets.OSRM_FOOT_URL }}
             OSRM_BIKE_URL=${{ secrets.OSRM_BIKE_URL }}
             EOF
-            
-            # 3) start.sh 권한 + 실행
+
+            # start.sh 권한 + 실행s
             chmod +x ./infra/scripts/start.sh
             sudo ./infra/scripts/start.sh

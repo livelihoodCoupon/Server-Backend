@@ -1,0 +1,60 @@
+name: Full Backend & Infra CD
+
+on:
+  push:
+    branches:
+      - feature/60_deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      #백엔드 Docker 이미지 빌드 (GitHub Actions에서)
+      - name: Build backend Docker
+        run: |
+          docker build -t myrepo/springboot-app:latest ./backend
+
+      #EC2에 전체 파일 전송
+      - name: Copy project to EC2
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "~/deploy/"
+
+      #Infra + Backend 자동 재시작
+      - name: Restart all services
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Environment variables from GitHub Secrets
+            export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+            export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+            export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            export POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            export REDIS_PORT=${{ secrets.REDIS_PORT }}
+
+            export ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+            export ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
+            export LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
+            export LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
+            export KIBANA_PORT=${{ secrets.KIBANA_PORT }}
+
+            export PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
+            export GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
+            export GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+            export GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+
+            cd ~/deploy
+            ./infra/scripts/stop.sh
+            ./infra/scripts/start.sh

@@ -64,6 +64,9 @@ jobs:
             SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
+            GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
+            GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
             EOF
 
             # start.sh 권한 + 실행s

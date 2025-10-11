@@ -67,6 +67,10 @@ jobs:
             GRAFANA_PORT=${{ secrets.GRAFANA_PORT }}
             GRAFANA_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
             GRAFANA_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+            ELASTICSEARCH_HOST=${{ secrets.ELASTICSEARCH_HOST }}
+            ELASTICSEARCH_PORT=${{ secrets.ELASTICSEARCH_PORT }}
+            ELASTICSEARCH_SCHEME=${{ secrets.ELASTICSEARCH_SCHEME }}
+            ELASTICSEARCH_TRANSPORT_PORT=${{ secrets.ELASTICSEARCH_TRANSPORT_PORT }}
             EOF
 
             # start.sh 권한 + 실행s

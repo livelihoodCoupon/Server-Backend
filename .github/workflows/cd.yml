@@ -59,6 +59,11 @@ jobs:
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+            REDIS_AOF=${{ secrets.REDIS_AOF }}
+            REDIS_PORT=${{ secrets.REDIS_PORT }}
+            SPRING_DATA_REDIS_HOST=${{ secrets.SPRING_DATA_REDIS_HOST }}
+            SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
+            PROMETHEUS_PORT=${{ secrets.PROMETHEUS_PORT }}
             EOF
 
             # start.sh 권한 + 실행s

@@ -31,14 +31,18 @@ import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.repository.SearchRepository;
 import com.livelihoodcoupon.search.service.ElasticPlaceService;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
+import com.livelihoodcoupon.common.config.SearchProperties;
+import org.springframework.context.annotation.Import;
 
 @DisplayName("Search 통합테스트")
 @WebMvcTest(SearchController.class)
+@Import(SearchProperties.class)
 public class SearchControllerTest {
 
 	List<Place> places = null;
@@ -214,7 +218,8 @@ public class SearchControllerTest {
 		List<PlaceSearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<PlaceSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
-		when(elasticService.elasticSearch(req, 10, 100)).thenReturn(pageList);
+		SearchServiceResult result = new SearchServiceResult(pageList, req.getLat(), req.getLng());
+		when(elasticService.elasticSearch(req, 10, 100)).thenReturn(result);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(

@@ -32,7 +32,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: src/**, infra/**, Dockerfile, docker-compose.yml
+          source: gradle/**, infra/**, logs/**, src/**, build.gradle, docker-compose.yml, Dockerfile, gradlew, gradlew.bat, settings.gradle
           target: "~/deploy/"
           port: 22
           overwrite: true
@@ -49,8 +49,8 @@ jobs:
             cd ~/deploy
 
             # stop.sh 권한 + 실행
-            chmod +x ./infra/scripts/stop.sh
-            sudo ./infra/scripts/stop.sh
+            #chmod +x ./infra/scripts/stop.sh
+            #sudo ./infra/scripts/stop.sh
 
             # .env 파일 생성
             cat > .env <<EOF
@@ -77,5 +77,5 @@ jobs:
             EOF
 
             # start.sh 권한 + 실행s
-            chmod +x ./infra/scripts/start.sh
-            sudo ./infra/scripts/start.sh
+            #chmod +x ./infra/scripts/start.sh
+            #sudo ./infra/scripts/start.sh

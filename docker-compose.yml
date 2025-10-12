@@ -1,6 +1,6 @@
 services:
   collector-app:
-    image: ${DOCKER_IMAGE}   # ← 여기 넣습니다
+    image: ${DOCKER_IMAGE}
     depends_on:
       postgres:
         condition: service_healthy

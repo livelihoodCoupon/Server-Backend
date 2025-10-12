@@ -1,63 +1,64 @@
-name: Full Backend & Infra CD
+name: Full Backend & Infra CD (Secrets + Env)
 
 on:
   push:
     branches:
-      - feature/60_deploy
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-      # 1. 코드 체크아웃
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      # 1.코드 체크아웃
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2. Docker 설치
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      # 3. Backend Docker 이미지 빌드
-      - name: Build backend Docker image
-        run: |
-          docker build -t springboot-app:latest .
-
-      # 4. EC2로 파일 전송
-      - name: Copy project to EC2
-        uses: appleboy/scp-action@v0.1.5
+      # 2.JDK 설치
+      - uses: actions/setup-java@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: gradle/**, infra/**, logs/**, src/**, build.gradle, docker-compose.yml, Dockerfile, gradlew, gradlew.bat, settings.gradle
-          target: "~/deploy/"
-          port: 22
-          overwrite: true
-          strip_components: 0
+          java-version: '21'
+          distribution: 'temurin'
 
-      # 5. 서버에서 stop.sh → .env 생성 → start.sh
-      - name: Restart all services
-        uses: appleboy/ssh-action@v0.1.6
+      # 3.Gradle 빌드 (테스트 제외)
+      - run: ./gradlew build -x test
+
+      # 4.Docker 로그인
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      # 5.Docker 이미지 빌드 & 푸시
+      - run: |
+          IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
+          docker build -t $IMAGE -f ./Dockerfile .
+          docker push $IMAGE
+
+      # 6.EC2 배포
+      - uses: appleboy/ssh-action@v0.1.6
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/deploy
+            cd ~/livelihoodCoupon-backend/infra/scripts
 
-            # stop.sh 권한 + 실행
-            #chmod +x ./infra/scripts/stop.sh
-            #sudo ./infra/scripts/stop.sh
-
-            # .env 파일 생성
-            cat > .env <<EOF
+            echo "Stopping all services..."
+            chmod +x ./stop.sh
+            ./stop.sh
+            
+            
+            echo "Generating .env file from GitHub Secrets..."
+            cat > ~/livelihoodCoupon-backend/.env <<EOL
+            DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
             KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
             REDIS_AOF=${{ secrets.REDIS_AOF }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
@@ -74,8 +75,19 @@ jobs:
             KIBANA_PORT=${{ secrets.KIBANA_PORT }}
             LOGSTASH_BEATS_PORT=${{ secrets.LOGSTASH_BEATS_PORT }}
             LOGSTASH_HTTP_PORT=${{ secrets.LOGSTASH_HTTP_PORT }}
-            EOF
-
-            # start.sh 권한 + 실행s
-            #chmod +x ./infra/scripts/start.sh
-            #sudo ./infra/scripts/start.sh
+            JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+            JWT_EXPIRATION_ACCESS=${{ secrets.JWT_EXPIRATION_ACCESS }}
+            JWT_EXPIRATION_REFRESH=${{ secrets.JWT_EXPIRATION_REFRESH }}
+            OPENWEATHER_API_KEY=${{ secrets.WEATHER_SERVICE_KEY }}
+            EOL
+            
+            echo ".env file generated successfully."
+            
+            echo "Starting all services..."
+            chmod +x ./start.sh
+            ./start.sh
+            
+            echo "Cleaning up unused Docker images..."
+            docker image prune -af
+            
+            echo "Deployment completed successfully!"

@@ -35,10 +35,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       #4.Docker 이미지 pull
+      #docker pull $IMAGE
       - name: Pull Docker image
         run: |
           IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
-          docker pull $IMAGE
+          docker build -t $IMAGE -f ./Dockerfile .
+          docker push $IMAGE
 
       #5.EC2에 infra 폴더 전송
       - name: Copy infra folder to EC2

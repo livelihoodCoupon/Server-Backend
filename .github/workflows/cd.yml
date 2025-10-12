@@ -52,7 +52,6 @@ jobs:
             chmod +x ./stop.sh
             ./stop.sh
             
-            
             echo "Generating .env file from GitHub Secrets..."
             cat > ~/livelihoodCoupon-backend/.env <<EOL
             DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest

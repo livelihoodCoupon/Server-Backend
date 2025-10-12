@@ -33,7 +33,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      #4.Docker 이미지 pull
+
+      #4. build
+      - name: Build Spring Boot JAR
+        run: ./gradlew clean build -x test  # 테스트는 선택적으로 제외 가능
+
+      #5.Docker 이미지 pull
       #docker pull $IMAGE
       - name: Pull Docker image
         run: |
@@ -41,7 +46,7 @@ jobs:
           docker build -t $IMAGE -f ./Dockerfile .
           docker push $IMAGE
 
-      #5.EC2에 infra 폴더 전송
+      #6.EC2에 infra 폴더 전송
       - name: Copy project folder to EC2
         uses: appleboy/scp-action@v0.1.5
         with:
@@ -53,7 +58,7 @@ jobs:
           overwrite: true
           strip_components: 0
 
-      #6.EC2에서 .env 생성 + start.sh 실행
+      #7.EC2에서 .env 생성 + start.sh 실행
       - name: Deploy and start services on EC2
         uses: appleboy/ssh-action@v0.1.6
         with:
@@ -68,6 +73,8 @@ jobs:
             cat > .env <<EOL
             DOCKER_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_REPOSITORY }}:latest
             KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
+            CORS_URL=${{ secrets.CORS_URL }}
+            POSTGRES_DB_URL=${{ secrets.POSTGRES_DB_URL }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}

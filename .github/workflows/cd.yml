@@ -70,7 +70,7 @@ jobs:
             KAKAO_API_KEY=${{ secrets.KAKAO_API_KEY }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-            POSTGRES_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
             POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
             REDIS_AOF=${{ secrets.REDIS_AOF }}
             REDIS_PORT=${{ secrets.REDIS_PORT }}
@@ -91,11 +91,11 @@ jobs:
             
             echo "Stopping all services..."
             chmod +x ./infra/scripts/stop.sh
-            ./infra/scripts/stop.sh || true
+            sudo ./infra/scripts/stop.sh
             
             echo "Starting services with start.sh..."
             chmod +x ./infra/scripts/start.sh
-            ./infra/scripts/start.sh
+            sudo ./infra/scripts/start.sh
             
             echo "Cleaning up unused Docker images..."
             docker image prune -af

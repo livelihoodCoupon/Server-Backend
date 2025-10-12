@@ -48,7 +48,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: infra/**
-          target: ~/livelihoodCoupon-backend/
+          target: ~/backend/infra
           strip_components: 1
 
       #6.EC2에서 .env 생성 + start.sh 실행
@@ -59,7 +59,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            DEPLOY_DIR=~/livelihoodCoupon-backend
+            DEPLOY_DIR=~/backend
             cd $DEPLOY_DIR
 
             echo "Creating .env file..."

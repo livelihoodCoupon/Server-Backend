@@ -2,8 +2,9 @@ name: Full Backend & Infra CD (Secrets + Env)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "feature/60_deploy" ]
+#  pull_request:
+#    branches: [ "main" ]
 
 jobs:
   deploy:

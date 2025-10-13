@@ -17,10 +17,12 @@ import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.exception.BusinessException;
 import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.dto.SearchToken;
 import com.livelihoodcoupon.search.entity.PlaceDocument;
 
@@ -36,7 +38,6 @@ import reactor.core.publisher.Mono;
 @Service
 public class ElasticService {
 
-	private static String searchNewAddress;
 	private final ElasticPlaceService elasticPlaceService;
 	private final SearchService searchService;
 	private final KakaoApiService kakaoApiService;
@@ -93,41 +94,74 @@ public class ElasticService {
 	 * @return
 	 * @throws IOException
 	 */
-	public Page<PlaceSearchResponseDto> elasticSearch(SearchRequestDto dto, int pageSize, int maxRecordSize) throws
+	public SearchServiceResult elasticSearch(SearchRequestDto dto, int pageSize, int maxRecordSize) throws
 		IOException {
 		String query = dto.getQuery();
 		//코모란 자연어 형태소 분리
-		List<SearchToken> resultList = analysisChat(query);
+		AnalyzedAddress analyzedAddress = analysisChat(query);
+		List<SearchToken> resultList = analyzedAddress.getResultList();
 
-		//검색어에 주소가 있을 경우 새로운 위치 가져오기
-		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", dto.getLat(), dto.getLng());
-		if (searchNewAddress != null && !searchNewAddress.isEmpty()) {
-			SearchRequestDto result = handleAddressPosition(searchNewAddress, dto).block().getBody();
-			log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", result.getLat(), result.getLng());
+		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
+
+		// 요청된 페이지가 최대 결과 수를 초과하는지 확인
+		if (pageable.getOffset() >= maxRecordSize) {
+			Page<PlaceSearchResponseDto> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, maxRecordSize);
+			return new SearchServiceResult(emptyPage, dto.getLat(), dto.getLng());
 		}
 
 		// 거리 계산을 위한 기준점 설정 (userLat/userLng가 있으면 사용, 없으면 lat/lng 사용)
-		double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
-		double refLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
+		double userLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
+		double userLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
 
+		//검색어에 주소가 있을 경우 새로운 위치 가져오기
+		double searchLat = dto.getLat();
+		double searchLng = dto.getLng();
+		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", searchLat, searchLng);
+
+		// forceLocationSearch가 true이면, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용
+		if (dto.isForceLocationSearch()) {
+			log.info("forceLocationSearch가 true이므로, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용합니다.");
+			// searchLat, searchLng는 이미 dto.getLat(), dto.getLng()로 초기화되어 있으므로 추가 작업 불필요
+		} else {
+			String fullAddressFromAnalysis = analyzedAddress.getFullAddress();
+			if (fullAddressFromAnalysis != null && !fullAddressFromAnalysis.trim().isEmpty()) {
+				SearchRequestDto result = handleAddressPosition(fullAddressFromAnalysis, dto).block().getBody();
+				searchLat = result.getLat();
+				searchLng = result.getLng();
+				log.info("엘라스틱 서치 재수정된 검색위치 latitude:{}, longitude:{}", searchLat, searchLng);
+
+				// 추가: 좌표로 행정구역 정보 가져오기
+				com.livelihoodcoupon.common.dto.Coord2RegionCodeResponse regionInfo = kakaoApiService.getRegionInfo(
+					searchLng, searchLat);
+				if (regionInfo != null && regionInfo.getDocuments() != null && !regionInfo.getDocuments().isEmpty()) {
+					com.livelihoodcoupon.common.dto.Coord2RegionCodeResponse.RegionDocument document = regionInfo.getDocuments()
+						.get(0);
+					analyzedAddress = new AnalyzedAddress(analyzedAddress.getFullAddress(),
+						document.getRegion1DepthName(),
+						document.getRegion2DepthName(), analyzedAddress.getResultList());
+				}
+			}
+		}
 		//검색하기
-		Pageable pageable = PageRequest.of(dto.getPage() - 1, pageSize);
-		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(resultList, dto, pageable);
+		SearchResponse<PlaceDocument> response = elasticPlaceService.searchPlace(analyzedAddress, dto, pageable,
+			searchLat, searchLng, userLat, userLng);
 
 		//dto 변환, 거리계산
 		List<PlaceSearchResponseDto> dtoPage = response.hits().hits()
 			.stream()
-			.limit(maxRecordSize)
 			.map(hit -> hit.source())
 			.map(place -> {
 				// 각 Place에 대해 거리 계산
-				return toSearchPosition(place, refLat, refLng);
+				return toSearchPosition(place, userLat, userLng);
 			}).collect(Collectors.toList());
 
 		long totalHits = response.hits().total() != null ? response.hits().total().value() : 0; //null체크
 		long resultTotalHits = Math.min(totalHits, maxRecordSize); //레코드 200개로 자르기
+		log.info("Total Hits from ES: {}, Result Total Hits after capping: {}", totalHits, resultTotalHits);
 		log.info("엘라스틱 서치 결과 return 총 갯수 : {}", totalHits);
-		return new PageImpl<>(dtoPage, pageable, resultTotalHits);
+
+		Page<PlaceSearchResponseDto> page = new PageImpl<>(dtoPage, pageable, resultTotalHits);
+		return new SearchServiceResult(page, searchLat, searchLng);
 	}
 
 	/**
@@ -180,7 +214,7 @@ public class ElasticService {
 	 * - 카페 - NNG	일반 명사 (장소/시설)
 	 * - 맛집 - NNG	일반 명사 (장소/음식점)
 	 **/
-	public List<SearchToken> analysisChat(String keyword) throws IOException {
+	public AnalyzedAddress analysisChat(String keyword) throws IOException {
 		log.info("analysisChat 호출 시작222");
 
 		//단어 형태 자동 분리
@@ -194,7 +228,7 @@ public class ElasticService {
 		} catch (NullPointerException e) {
 			log.error("형태소 분석 결과 추출 중 오류 발생 - keyword: {}", keyword);
 			// 문제를 알리고 빈 리스트로 대체
-			return Collections.emptyList();
+			return new AnalyzedAddress("", "", "", Collections.emptyList());
 		}
 
 		List<SearchToken> list = new ArrayList<>();
@@ -230,8 +264,7 @@ public class ElasticService {
 			log.info("====> 형태소 분리 {}, {} {}, {}, {}", token.getBeginIndex(), token.getEndIndex(), token.getMorph(),
 				token.getPos(), getFieldName);
 		}
-		searchNewAddress = builder.toString();
-		return list;
+		return new AnalyzedAddress(builder.toString().trim(), null, null, list);
 	}
 
 	/**

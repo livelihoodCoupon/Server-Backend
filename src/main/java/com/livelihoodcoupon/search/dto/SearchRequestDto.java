@@ -51,6 +51,10 @@ public class SearchRequestDto {
 	@Builder.Default
 	private String sort = "distance";
 
+	//위치 기반 검색 강제 여부 (true일 경우 검색어 내 지역 정보 무시)
+	@Builder.Default
+	private boolean forceLocationSearch = false;
+
 	public void initDefaults() {
 		page = (page == null || page == 0) ? 0 : page;
 		lat = (lat == null || lat == 0.0) ? 37.560949118173454 : lat;

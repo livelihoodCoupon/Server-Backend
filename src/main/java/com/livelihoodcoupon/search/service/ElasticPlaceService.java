@@ -9,6 +9,7 @@ import java.util.Objects;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
@@ -24,12 +25,11 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.GeoDistanceQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchBoolPrefixQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchPhrasePrefixQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchPhraseQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -39,6 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class ElasticPlaceService {
 
+	private static final List<String> ALLOWED_CATEGORIES = List.of(
+		"음식", "음식점", "숙박", "카페", "편의점", "마트", "병원", "약국", "주차장", "주유소", "미용실", "안경"
+	);
 	private final String index = "places";
 	private final ElasticsearchClient client;
 
@@ -166,136 +169,104 @@ public class ElasticPlaceService {
 	/**
 	 * 엘라스틱서치 전체에서 검색
 	 * 단어분리 : komoran 방식
-	 * @param resultList
+	 * @param analyzedAddress
 	 * @param dto
 	 * @param pageable
+	 * @param refLat
+	 * @param refLng
 	 * @return
 	 * @throws IOException
 	 **/
-	public SearchResponse<PlaceDocument> searchPlace(List<SearchToken> resultList,
-		SearchRequestDto dto, Pageable pageable) throws IOException {
+	public SearchResponse<PlaceDocument> searchPlace(AnalyzedAddress analyzedAddress, SearchRequestDto dto,
+		Pageable pageable, double searchCenterLat, double searchCenterLng, double userSortLat, double userSortLng) throws IOException {
 
 		try {
-			//쿼리생성
 			log.info("======>ElasticPlaceService searchPlace 위도:{}, 경도:{}", dto.getLat(), dto.getLng());
 
-			//위치 가져오기
-			double refLat = (dto.getUserLat() != null) ? dto.getUserLat() : dto.getLat();
-			double refLng = (dto.getUserLng() != null) ? dto.getUserLng() : dto.getLng();
+			List<SearchToken> tokens =
+				(analyzedAddress.getResultList() == null || analyzedAddress.getResultList().isEmpty())
+					? Collections.emptyList() : analyzedAddress.getResultList();
 
-			//위치 쿼리 생성
+			// 1. 쿼리 빌더 초기화
+			BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
+
+			// 2. 필수 조건: 위치 기반 필터링 (Geo-distance)
 			Query geoQuery = GeoDistanceQuery.of(g -> g
 				.field("location")
 				.distance(String.valueOf(dto.getRadius() + "km"))
-				.location(GeoLocation.of(loc -> loc
-					.latlon(latlon -> latlon
-						.lat(refLat)
-						.lon(refLng)
-					)
-				))
+				.location(GeoLocation.of(loc -> loc.latlon(l -> l.lat(searchCenterLat).lon(searchCenterLng))))
 			)._toQuery();
+			boolQueryBuilder.filter(geoQuery); // filter 절로 변경하여 스코어 계산에서 제외하고 캐싱 활용
 
-			//주소, 카테고리, 상가명 쿼리 생성
-			List<Query> shouldQueries = new ArrayList<>();
+			// 3. 필수/선택 조건: 토큰 기반 쿼리 생성
+			List<Query> mustClauses = new ArrayList<>();
+			List<Query> shouldClauses = new ArrayList<>();
+			List<String> generalKeywords = new ArrayList<>();
 
-			//목록이 공백일수 있기에 한번더체크
-			List<SearchToken> resultList2;
-			resultList2 = (resultList == null || resultList.isEmpty()) ? Collections.emptyList() : resultList;
+			for (SearchToken token : tokens) {
+				String fieldName = token.getFieldName();
+				String word = token.getMorph();
 
-			// 분리된 단어로 쿼리 만들기
-			// 분리하기전에 쿼리문인데 임시로 보관
-			int count = 0;
-			for (SearchToken token : resultList2) {
-				String fieldName = token.getFieldName(); //필드이름(address or category or place_name)
-				String word = token.getMorph(); //분리된 단어
-
-				if (fieldName != null) {
-					count++;
-					switch (fieldName) {
-						case "address":
-							//MatchPhrasePrefixQuery
-							Query roadQuery = MatchPhrasePrefixQuery.of(
-								m -> m.field("road_address").query(word.trim()).boost(1.0f))._toQuery();
-							shouldQueries.add(roadQuery);
-							break;
-						case "category":
-							Query categoryQuery = MultiMatchQuery.of(
-								m -> m.fields("category.autocomplete^3", "category.nori^2", "category^1")
-									.query(word.trim())
-									.boost(2.0f))._toQuery();
-							shouldQueries.add(categoryQuery);
-							break;
-						default:
-							Query nameQuery = MatchQuery.of(
-								m -> m.field("place_name.autocomplete").query(word.trim()).boost(3.0f))._toQuery();
-							shouldQueries.add(nameQuery);
-							break;
-					}
+				if ("address".equals(fieldName)) {
+					mustClauses.add(MatchQuery.of(m -> m.field("road_address.nori").query(word))._toQuery());
+				} else if ("category".equals(fieldName) && ALLOWED_CATEGORIES.contains(word)) {
+					mustClauses.add(MatchQuery.of(m -> m.field("category.nori").query(word))._toQuery());
+				} else {
+					// 주소나 카테고리가 아닌 단어는 일반 키워드로 간주
+					generalKeywords.add(word);
 				}
 			}
 
-			//마지막 쿼리 만들기2
-			int finalCount = count;
-			BoolQuery boolQuery = BoolQuery.of(b -> {
-				b.must(geoQuery);
-				b.minimumShouldMatch(String.valueOf(finalCount)); // should 중 1개 이상만 일치하면 됨
+			// 일반 키워드가 있는 경우, should 절에 추가하여 관련도 점수에 반영
+			if (!generalKeywords.isEmpty()) {
+				String generalQuery = String.join(" ", generalKeywords);
+				shouldClauses.add(MultiMatchQuery.of(m -> m
+					.query(generalQuery)
+					.fields("place_name.nori^3.0", "road_address.nori^1.5", "category.nori^1.0")
+					.operator(Operator.And)
+				)._toQuery());
+				// 원본 검색어 전체에 대한 구문 일치(phrase match) 점수 추가
+				shouldClauses.add(MatchPhraseQuery.of(m -> m
+					.field("place_name")
+					.query(dto.getQuery().trim())
+					.boost(5.0f)
+				)._toQuery());
+			}
 
-				for (SearchToken token : resultList2) {
-					//edge_ngram 자동완성용
-					b.should(MultiMatchQuery.of(m -> m
-						.query(token.getMorph())
-						.fields(List.of(
-							"place_name.autocomplete^4",
-							"road_address.autocomplete^3",
-							"category.autocomplete^2"
-						))
-						.type(TextQueryType.BoolPrefix)
-					)._toQuery());
+			// 생성된 must와 should 절을 bool 쿼리에 추가
+			if (!mustClauses.isEmpty()) {
+				boolQueryBuilder.must(mustClauses);
+			}
+			if (!shouldClauses.isEmpty()) {
+				boolQueryBuilder.should(shouldClauses).minimumShouldMatch("1");
+			}
 
-					// nori 형태소 분석기 기반 match 쿼리 (일반 텍스트 검색)
-					b.should(MatchQuery.of(m -> m
-						.field("place_name.nori")
-						.query(token.getMorph())
-						.operator(Operator.And)
-						.boost(4.0f)
-					)._toQuery());
-
-					b.should(MatchQuery.of(m -> m
-						.field("road_address.nori")
-						.query(token.getMorph())
-						.operator(Operator.And)
-						.boost(3.0f)
-					)._toQuery());
-
-					b.should(MatchQuery.of(m -> m
-						.field("category.nori")
-						.query(token.getMorph())
-						.operator(Operator.And)
-						.boost(2.0f)
-					)._toQuery());
-
-				}
-				return b;
-			});
-			Query finalQuery = boolQuery._toQuery();
+			// 4. 최종 쿼리 생성
+			Query finalQuery = boolQueryBuilder.build()._toQuery();
 			log.info("====>ElasticPlaceService searchPlace finalQuery={}", finalQuery);
 
-			// 정렬 옵션
-			SortOptions geoSort = SortOptions.of(s -> s
-				.geoDistance(g -> g
+			// 5. 정렬 옵션 설정
+			List<SortOptions> sortOptions = new ArrayList<>();
+			if ("accuracy".equals(dto.getSort())) {
+				sortOptions.add(SortOptions.of(s -> s.score(score -> score.order(SortOrder.Desc))));
+			} else { // "distance" 또는 기본값
+				sortOptions.add(SortOptions.of(s -> s.geoDistance(g -> g
 					.field("location")
 					.location(GeoLocation.of(loc -> loc
 						.latlon(latlon -> latlon
-							.lat(refLat)
-							.lon(refLng)
+							.lat(userSortLat)
+							.lon(userSortLng)
 						)
 					))
 					.order(SortOrder.Asc)
 					.unit(DistanceUnit.Kilometers)
 					.mode(SortMode.Min)
-				)
-			);
+				)));
+				// 거리순 정렬 시에도 관련도 점수를 2차 정렬 기준으로 추가
+				sortOptions.add(SortOptions.of(s -> s.score(score -> score.order(SortOrder.Desc))));
+			}
 
+			// 6. 검색 실행 및 반환
 			int pageNumber = pageable.getPageNumber();         // 시작 인덱스
 			int pageSize = pageable.getPageSize();         // 끝 인덱스
 			int pageFrom = pageNumber * pageSize;         // 시작 인덱스
@@ -304,7 +275,7 @@ public class ElasticPlaceService {
 			SearchResponse<PlaceDocument> response = client.search(s -> s
 					.index(index)
 					.query(finalQuery)
-					.sort(geoSort)
+					.sort(sortOptions)
 					.from(pageFrom)
 					.size(pageSize),
 				PlaceDocument.class
@@ -312,7 +283,7 @@ public class ElasticPlaceService {
 			return response;
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error("Elasticsearch 검색 중 오류 발생", e);
 			throw new RuntimeException("Elasticsearch 검색에 실패하였습니다.", e);
 		}
 	}

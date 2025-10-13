@@ -20,8 +20,10 @@ import org.springframework.http.ResponseEntity;
 
 import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.dto.SearchToken;
 import com.livelihoodcoupon.search.entity.PlaceDocument;
 import com.livelihoodcoupon.search.repository.SearchRepository;
@@ -117,13 +119,16 @@ class ElasticServiceTest {
 			.shards(new ShardStatistics.Builder().total(1).successful(1).failed(0).build())
 			.build();
 
-		when(elasticPlaceService.searchPlace(any(), any(), any())).thenReturn(mockResponse);
+		when(elasticPlaceService.searchPlace(any(AnalyzedAddress.class), any(), any(), any(Double.class),
+			any(Double.class), any(Double.class), any(Double.class))).thenReturn(
+			mockResponse);
 		when(searchService.calculateDistance(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
 			.thenReturn(1.23);
 		Coordinate mockCoordinate = new Coordinate(37.5, 127.0);
 
 		//when
-		Page<PlaceSearchResponseDto> page = elasticService.elasticSearch(req, 10, 100);
+		SearchServiceResult result = elasticService.elasticSearch(req, 10, 100);
+		Page<PlaceSearchResponseDto> page = result.getPage();
 
 		//then
 		assertThat(page.getContent())
@@ -204,12 +209,12 @@ class ElasticServiceTest {
 		when(redisService.getWordInfo(anyString())).thenReturn("address");
 
 		// When
-		List<SearchToken> tokens = elasticService.analysisChat(query);
+		AnalyzedAddress analyzedAddress = elasticService.analysisChat(query);
 
 		// Then
-		assertNotNull(tokens);
-		assertEquals(3, tokens.size());
-		assertTrue(tokens.stream().anyMatch(token -> "address".equals(token.getFieldName())));
+		assertNotNull(analyzedAddress);
+		assertEquals(3, analyzedAddress.getResultList().size());
+		assertTrue(analyzedAddress.getResultList().stream().anyMatch(token -> "address".equals(token.getFieldName())));
 	}
 
 	@Test

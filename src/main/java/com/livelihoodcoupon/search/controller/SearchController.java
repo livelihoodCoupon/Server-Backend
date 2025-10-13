@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.livelihoodcoupon.common.config.SearchProperties;
 import com.livelihoodcoupon.common.response.CustomApiResponse;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
@@ -20,6 +21,7 @@ import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.SearchService;
 
@@ -34,6 +36,7 @@ public class SearchController {
 
 	private final SearchService search;
 	private final ElasticService elasticService;
+	private final SearchProperties searchProperties;
 
 	/**
 	 * redis 이용한 호출
@@ -48,10 +51,8 @@ public class SearchController {
 		//request 기본 세팅
 		request.initDefaults();
 
-		int maxRecordSize = 100;
-		int pageSize = 10;
-		Page<SearchResponseDto> pageList = search.search(request, pageSize, maxRecordSize);
-		PageResponse<SearchResponseDto> searchResponse = new PageResponse<>(pageList, pageSize);
+		Page<SearchResponseDto> pageList = search.search(request, searchProperties.getPageSize(), searchProperties.getMaxResults());
+		PageResponse<SearchResponseDto> searchResponse = new PageResponse<>(pageList, searchProperties.getPageSize(), request.getLat(), request.getLng());
 
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 
@@ -68,10 +69,9 @@ public class SearchController {
 		//request 기본 세팅
 		request.initDefaults();
 
-		int maxRecordSize = 100;
-		int pageSize = 10;
-		Page<PlaceSearchResponseDto> pageList = elasticService.elasticSearch(request, pageSize, maxRecordSize);
-		PageResponse<PlaceSearchResponseDto> searchResponse = new PageResponse<>(pageList, pageSize);
+		SearchServiceResult result = elasticService.elasticSearch(request, searchProperties.getPageSize(), searchProperties.getMaxResults());
+		Page<PlaceSearchResponseDto> pageList = result.getPage();
+		PageResponse<PlaceSearchResponseDto> searchResponse = new PageResponse<>(pageList, searchProperties.getPageSize(), result.getSearchCenterLat(), result.getSearchCenterLng());
 
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 	}

@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 
+import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
@@ -201,7 +202,11 @@ public class ElasticPlaceServiceTest {
 		)).thenReturn(mockResponse);
 
 		// when
-		SearchResponse<PlaceDocument> response = service.searchPlace(tokens, dto, pageable);
+		AnalyzedAddress analyzedAddress = new AnalyzedAddress("", "", "", tokens);
+		dto.setUserLat(37.5665); // Add user coordinates for the new signature
+		dto.setUserLng(126.9780);
+		SearchResponse<PlaceDocument> response = service.searchPlace(analyzedAddress, dto, pageable, dto.getLat(),
+			dto.getLng(), dto.getUserLat(), dto.getUserLng());
 
 		// then
 		assertNotNull(response);

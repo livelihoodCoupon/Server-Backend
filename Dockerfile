@@ -31,4 +31,4 @@ EXPOSE 8080
 # 컨테이너가 시작될 때 JAR 파일을 실행하는 명령어를 지정합니다.
 ENTRYPOINT ["java", "-jar", "app.jar"]
 
-RUN apt-get update && apt-get install -y net-tools
+#RUN apt-get update && apt-get install -y net-tools

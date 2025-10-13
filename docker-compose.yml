@@ -1,6 +1,6 @@
 services:
   collector-app:
-    image: ${DOCKER_IMAGE}
+    image: ${DOCKER_IMAGE:-}
     env_file:
       - .env   # docker-compose.yml과 같은 디렉토리에 .env 파일 있어야 함
     depends_on:

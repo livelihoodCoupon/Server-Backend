@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import com.livelihoodcoupon.common.config.SearchProperties;
 import com.livelihoodcoupon.common.exception.BusinessException;
 import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.place.entity.Place;
@@ -37,8 +39,6 @@ import com.livelihoodcoupon.search.service.ElasticPlaceService;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
 import com.livelihoodcoupon.search.service.SearchService;
-import com.livelihoodcoupon.common.config.SearchProperties;
-import org.springframework.context.annotation.Import;
 
 @DisplayName("Search 통합테스트")
 @WebMvcTest(SearchController.class)
@@ -48,6 +48,9 @@ public class SearchControllerTest {
 	List<Place> places = null;
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SearchProperties searchProperties;
 
 	@MockitoBean
 	private SearchService searchService;
@@ -94,7 +97,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -141,7 +145,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -179,7 +184,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -219,7 +225,8 @@ public class SearchControllerTest {
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<PlaceSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
 		SearchServiceResult result = new SearchServiceResult(pageList, req.getLat(), req.getLng());
-		when(elasticService.elasticSearch(req, 10, 100)).thenReturn(result);
+		when(elasticService.elasticSearch(req, searchProperties.getPageSize(),
+			searchProperties.getMaxResults())).thenReturn(result);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(

@@ -55,6 +55,10 @@ public class SearchRequestDto {
 	@Builder.Default
 	private boolean forceLocationSearch = false;
 
+	// 지리적 필터링 비활성화 여부 (true일 경우 lat, lng, radius를 사용한 지리적 필터링을 건너뜀)
+	@Builder.Default
+	private boolean disableGeoFilter = false;
+
 	public void initDefaults() {
 		page = (page == null || page == 0) ? 0 : page;
 		lat = (lat == null || lat == 0.0) ? 37.560949118173454 : lat;

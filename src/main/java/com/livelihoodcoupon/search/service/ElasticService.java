@@ -118,9 +118,9 @@ public class ElasticService {
 		double searchLng = dto.getLng();
 		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", searchLat, searchLng);
 
-		// forceLocationSearch가 true이면, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용
-		if (dto.isForceLocationSearch()) {
-			log.info("forceLocationSearch가 true이므로, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용합니다.");
+		// forceLocationSearch가 true이거나 disableGeoFilter가 true인 경우, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용
+		if (dto.isForceLocationSearch() || dto.isDisableGeoFilter()) {
+			log.info("forceLocationSearch 또는 disableGeoFilter가 true이므로, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용합니다.");
 			// searchLat, searchLng는 이미 dto.getLat(), dto.getLng()로 초기화되어 있으므로 추가 작업 불필요
 		} else {
 			String fullAddressFromAnalysis = analyzedAddress.getFullAddress();

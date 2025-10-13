@@ -7,9 +7,8 @@ services:
       - "5004:5000"
     volumes:
       - ./data:/data
-    #command: osrm-routed --algorithm mld /data/south-korea-latest.car.osrm
-    #--memory-map → OSRM이 데이터를 RAM 전체에 올리지 않고 필요한 부분만 mmap으로 사용 RAM 부족으로 다운되는 문제 방지
-    command: osrm-routed --algorithm mld --memory-map /data/south-korea-latest.car.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    # 대신 컨테이너 RAM 제한
     deploy:
       resources:
         limits:
@@ -28,9 +27,8 @@ services:
       - "5001:5000"
     volumes:
       - ./data:/data
-    #command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
-    #--memory-map → OSRM이 데이터를 RAM 전체에 올리지 않고 필요한 부분만 mmap으로 사용 RAM 부족으로 다운되는 문제 방지
-    command: osrm-routed --algorithm mld --memory-map /data/south-korea-latest.foot.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    # 대신 컨테이너 RAM 제한
     deploy:
       resources:
         limits:
@@ -49,9 +47,8 @@ services:
       - "5002:5000"
     volumes:
       - ./data:/data
-    #command: osrm-routed --algorithm mld /data/south-korea-latest.bike.osrm
-    #--memory-map → OSRM이 데이터를 RAM 전체에 올리지 않고 필요한 부분만 mmap으로 사용 RAM 부족으로 다운되는 문제 방지
-    command: osrm-routed --algorithm mld --memory-map /data/south-korea-latest.bike.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    # 대신 컨테이너 RAM 제한
     deploy:
       resources:
         limits:

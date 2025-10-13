@@ -172,13 +172,16 @@ public class ElasticPlaceService {
 	 * @param analyzedAddress
 	 * @param dto
 	 * @param pageable
-	 * @param refLat
-	 * @param refLng
+	 * @param searchCenterLat
+	 * @param searchCenterLng
+	 * @param userSortLat
+	 * @param userSortLng
 	 * @return
 	 * @throws IOException
 	 **/
 	public SearchResponse<PlaceDocument> searchPlace(AnalyzedAddress analyzedAddress, SearchRequestDto dto,
-		Pageable pageable, double searchCenterLat, double searchCenterLng, double userSortLat, double userSortLng) throws IOException {
+		Pageable pageable, double searchCenterLat, double searchCenterLng, double userSortLat,
+		double userSortLng) throws IOException {
 
 		try {
 			log.info("======>ElasticPlaceService searchPlace 위도:{}, 경도:{}", dto.getLat(), dto.getLng());
@@ -191,12 +194,14 @@ public class ElasticPlaceService {
 			BoolQuery.Builder boolQueryBuilder = new BoolQuery.Builder();
 
 			// 2. 필수 조건: 위치 기반 필터링 (Geo-distance)
-			Query geoQuery = GeoDistanceQuery.of(g -> g
-				.field("location")
-				.distance(String.valueOf(dto.getRadius() + "km"))
-				.location(GeoLocation.of(loc -> loc.latlon(l -> l.lat(searchCenterLat).lon(searchCenterLng))))
-			)._toQuery();
-			boolQueryBuilder.filter(geoQuery); // filter 절로 변경하여 스코어 계산에서 제외하고 캐싱 활용
+			if (!dto.isDisableGeoFilter()) {
+				Query geoQuery = GeoDistanceQuery.of(g -> g
+					.field("location")
+					.distance(String.valueOf(dto.getRadius() + "km"))
+					.location(GeoLocation.of(loc -> loc.latlon(l -> l.lat(searchCenterLat).lon(searchCenterLng))))
+				)._toQuery();
+				boolQueryBuilder.filter(geoQuery); // filter 절로 변경하여 스코어 계산에서 제외하고 캐싱 활용
+			}
 
 			// 3. 필수/선택 조건: 토큰 기반 쿼리 생성
 			List<Query> mustClauses = new ArrayList<>();
@@ -206,6 +211,11 @@ public class ElasticPlaceService {
 			for (SearchToken token : tokens) {
 				String fieldName = token.getFieldName();
 				String word = token.getMorph();
+
+				// forceLocationSearch가 true이면, 검색어 내 지역 정보는 완전히 무시
+				if (dto.isForceLocationSearch() && "address".equals(fieldName)) {
+					continue; // 해당 지역 토큰은 쿼리 생성에서 제외
+				}
 
 				if ("address".equals(fieldName)) {
 					mustClauses.add(MatchQuery.of(m -> m.field("road_address.nori").query(word))._toQuery());

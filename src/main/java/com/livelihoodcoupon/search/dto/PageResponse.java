@@ -47,7 +47,10 @@ public class PageResponse<T> {
 	//@Schema(description = "끝페이지여부", example = "false")
 	private boolean isLast;
 
-	public PageResponse(Page<T> page, int blockSize) {
+	private double searchCenterLat;
+	private double searchCenterLng;
+
+	public PageResponse(Page<T> page, int blockSize, double searchCenterLat, double searchCenterLng) {
 		this.content = page.getContent();
 		this.currentPage = page.getNumber() + 1;
 
@@ -63,6 +66,8 @@ public class PageResponse<T> {
 		this.blockSize = blockSize;
 		this.isFirst = page.isFirst();
 		this.isLast = page.isLast();
+		this.searchCenterLat = searchCenterLat;
+		this.searchCenterLng = searchCenterLng;
 	}
 
 }

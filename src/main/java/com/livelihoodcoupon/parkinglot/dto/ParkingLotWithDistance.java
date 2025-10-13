@@ -9,7 +9,7 @@ public interface ParkingLotWithDistance {
     Long getId();
     String getParkingLotNm();
     String getRoadAddress();
-    String getPhoneNumber();
+    String getLotAddress();
     String getParkingChargeInfo();
     Point getLocation();
     Double getDistance();

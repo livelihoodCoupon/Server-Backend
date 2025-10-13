@@ -18,5 +18,8 @@ public class NearbySearchRequest {
     private Double lng;
 
     // 반경(meter), 기본값 1000m (1km)
-    private Integer radius = 1000;
+    private Integer radius = 500;
+
+    private Integer page = 1;
+    private Integer size =  10;
 }

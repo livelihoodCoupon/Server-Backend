@@ -2,6 +2,7 @@ package com.livelihoodcoupon.parkinglot.repository;
 
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotWithDistance;
 import com.livelihoodcoupon.parkinglot.entity.ParkingLot;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -9,7 +10,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface ParkingLotRepository extends JpaRepository<ParkingLot, Long> {
 
@@ -17,13 +22,17 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLot, Long> {
 		value = "SELECT *, ST_Distance(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) as distance " +
 			"FROM parking_lot " +
 			"WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius) " +
-			"ORDER BY distance ASC")
-	List<ParkingLotWithDistance> findNearbyParkingLots(
+			"ORDER BY distance ASC",
+		countQuery = "SELECT count(*) FROM parking_lot " +
+			"WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)")
+	Page<ParkingLotWithDistance> findNearbyParkingLots(
 		@Param("lat") double lat,
 		@Param("lng") double lng,
-		@Param("radius") int radius
+		@Param("radius") int radius,
+		Pageable pageable
 	);
 
+	    Optional<ParkingLot> findByParkingLotId(Long id);
 	// 1) 백필 대상: location IS NULL 이고 주소가 하나라도 있는 행 상위 N개
 	interface ToGeocode {
 		Long getId();

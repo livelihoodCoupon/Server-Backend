@@ -7,7 +7,7 @@ services:
       - "5004:5000"
     volumes:
       - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.car.osrm
     # 컨테이너 RAM 제한
     deploy:
       resources:
@@ -47,7 +47,7 @@ services:
       - "5002:5000"
     volumes:
       - ./data:/data
-    command: osrm-routed --algorithm mld /data/south-korea-latest.foot.osrm
+    command: osrm-routed --algorithm mld /data/south-korea-latest.bike.osrm
     # 컨테이너 RAM 제한
     deploy:
       resources:

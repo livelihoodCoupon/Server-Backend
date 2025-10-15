@@ -103,6 +103,7 @@ tasks.named('check') {
 
 tasks.named('test') {
     useJUnitPlatform()
+    maxHeapSize = '2048m'
 }
 
 tasks.named('checkstyleTest') {

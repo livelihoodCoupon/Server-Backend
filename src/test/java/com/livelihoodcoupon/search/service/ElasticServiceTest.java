@@ -50,6 +50,7 @@ import reactor.core.publisher.Mono;
 
 @DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 class ElasticServiceTest {
 
 	@Mock

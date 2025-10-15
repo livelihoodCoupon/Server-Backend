@@ -14,6 +14,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -33,7 +34,8 @@ public abstract class BaseIntegrationTest {
 			.withEnv("POSTGRES_USER", "testuser")
 			.withEnv("POSTGRES_PASSWORD", "testpass")
 			// 맥 M1/M2와 x86_64 윈도우/리눅스 호환
-			.withCreateContainerCmdModifier(cmd -> cmd.withPlatform("linux/amd64"));
+			.withCreateContainerCmdModifier(cmd -> cmd.withPlatform("linux/amd64"))
+			.waitingFor(Wait.forListeningPort());
 
 	// ============================================
 	// Redis 컨테이너
@@ -41,7 +43,8 @@ public abstract class BaseIntegrationTest {
 	@Container
 	static GenericContainer<?> redisContainer =
 		new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-			.withExposedPorts(6379);
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
 
 	// ============================================
 	// PostGIS 확장 생성 (테스트 시작 전에 설치)

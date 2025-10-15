@@ -1,5 +1,7 @@
 package com.livelihoodcoupon.collector.entity;
 
+import java.io.Serializable;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor
-public class ScannedGrid extends BaseEntity {
+public class ScannedGrid extends BaseEntity implements Serializable {
 
 	@Column(nullable = false)
 	private String regionName;

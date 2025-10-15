@@ -70,11 +70,40 @@
         </encoder>
     </appender>
 
+    <!-- 4. 길찾기 API 전용 로그 파일 Appender -->
+    <appender name="ROUTE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/route-api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/route-api-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <timestamp>timestamp</timestamp>
+                <version>[ignore]</version>
+                <level>level</level>
+                <thread>thread</thread>
+                <logger>class</logger>
+                <message>message</message>
+                <context>context</context>
+                <levelValue>[ignore]</levelValue>
+            </fieldNames>
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"livelihoodCoupon-app", "logType":"route-api"}</customFields>
+        </encoder>
+    </appender>
+
     <!-- 로거 설정 -->
     <!-- 보안 관련 로거 -->
     <logger name="securityLogger" level="INFO" additivity="false">
         <appender-ref ref="SECURITY_FILE"/>
         <!-- 개발 환경에서는 콘솔에도 출력 -->
+        <appender-ref ref="STDOUT_JSON"/>
+    </logger>
+
+    <!-- 길찾기 API 전용 로거 -->
+    <logger name="com.livelihoodcoupon.route" level="INFO" additivity="false">
+        <appender-ref ref="ROUTE_FILE"/>
         <appender-ref ref="STDOUT_JSON"/>
     </logger>
 

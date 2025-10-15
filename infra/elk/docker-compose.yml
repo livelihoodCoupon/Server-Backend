@@ -1,11 +1,19 @@
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1 # Use a specific version compatible with Logstash/Kibana
+    #image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1 # Use a specific version compatible with Logstash/Kibana
+    #nori tokenizer 추가
+    build:
+      context: ./
+      dockerfile: Dockerfile
     container_name: livelihoodCoupon-elasticsearch
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
       - xpack.security.enabled=false
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
     ports:
       - "${ELASTICSEARCH_PORT:-9200}:9200" # HTTP
       - "${ELASTICSEARCH_TRANSPORT_PORT:-9300}:9300" # Transport
@@ -54,11 +62,15 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Connect to Elasticsearch service name
     depends_on:
       - elasticsearch # Ensure Elasticsearch is up before Kibana
+    deploy: # 이 섹션을 추가합니다.
+      resources:
+        limits:
+          memory: 1g # Kibana 메모리 제한을 512MB로 설정
     healthcheck:
       test: |
         CMD-SHELL curl -s http://localhost:5601/api/status | grep -q '"state":"green"'
       interval: 10s
-      timeout: 10s
+      timeout: 20s
       retries: 5
       start_period: 30s
     restart: unless-stopped

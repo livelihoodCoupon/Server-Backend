@@ -21,5 +21,6 @@ batch:
   csv:
     file:
       path: data/csv
+    incremental-path: data/new-csv/
 cors:
   allowed-origins: ${CORS_URL}

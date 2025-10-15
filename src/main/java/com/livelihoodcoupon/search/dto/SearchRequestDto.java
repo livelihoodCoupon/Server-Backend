@@ -51,6 +51,14 @@ public class SearchRequestDto {
 	@Builder.Default
 	private String sort = "distance";
 
+	//위치 기반 검색 강제 여부 (true일 경우 검색어 내 지역 정보 무시)
+	@Builder.Default
+	private boolean forceLocationSearch = false;
+
+	// 지리적 필터링 비활성화 여부 (true일 경우 lat, lng, radius를 사용한 지리적 필터링을 건너뜀)
+	@Builder.Default
+	private boolean disableGeoFilter = false;
+
 	public void initDefaults() {
 		page = (page == null || page == 0) ? 0 : page;
 		lat = (lat == null || lat == 0.0) ? 37.560949118173454 : lat;

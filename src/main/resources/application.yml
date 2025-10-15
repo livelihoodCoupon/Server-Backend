@@ -5,7 +5,7 @@ spring:
     name: livelihoodCoupon
   profiles:
     active: dev
-    include: local # 항상 local 프로파일 포함
+    #include: local # 항상 local 프로파일 포함
   jpa:
     show-sql: false
     properties:
@@ -60,3 +60,8 @@ elasticsearch:
   host: ${ELASTICSEARCH_HOST:elasticsearch}
   port: ${ELASTICSEARCH_PORT:9200}
   scheme: ${ELASTICSEARCH_SCHEME:http}
+
+# 검색 설정
+search:
+  page-size: 100
+  max-results: 100

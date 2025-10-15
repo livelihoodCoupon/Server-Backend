@@ -634,44 +634,92 @@ GET /api/suggestions
 
 </br>
 
-### 6. 장소 기반 주변 주차장 검색 (Elasticsearch 기반, 권장)
+### 6. 주변 주차장 검색 (Elasticsearch 연동, 권장)
 
-사용자가 검색한 **장소(query)**를 기준으로, 해당 장소 주변의 주차장을 검색하여 반환합니다.
+
+
+장소 검색어 또는 좌표를 기준으로 주변 주차장을 검색합니다. 요청 파라미터에 따라 두 가지 방식으로 동작합니다.
+
+
 
 ```http
+
 GET /api/searches/parkinglots
+
 ```
+
+
 
 **Query Parameters:**
 
-- `query` (string, 필수): 중심점을 찾기 위한 장소 검색어 (예: "강남역", "서울시청")
-- `page` (integer, 선택): 조회할 페이지 번호 (기본값: 1)
-- `userLat` (double, 선택): 거리 계산의 기준이 될 사용자의 실제 위도. 미지정 시 검색된 장소의 위도가 사용됩니다.
-- `userLng` (double, 선택): 거리 계산의 기준이 될 사용자의 실제 경도. 미지정 시 검색된 장소의 경도가 사용됩니다.
+
+- `query`(string, 선택) : 중심점을 찾기 위한 장소 검색어 (예: "강남역"). `lat`, `lng`이 없을 경우 필수.
+- `lat`(double, 선택) : 검색의 중심이 될 위도. `query`가 없을 경우 `lng`과 함께 필수.
+- `lng`(double, 선택) : 검색의 중심이 될 경도. `query`가 없을 경우 `lat`과 함께 필수.
+- `page`(integer, 선택) : 조회할 페이지 번호 (기본값: 1)
+- `userLat`(double, 선택) : **거리 계산**의 기준이 될 사용자의 실제 위도.
+- `userLng`(double, 선택) : **거리 계산**의 기준이 될 사용자의 실제 경도.
+
+
+
+**동작 방식:**
+
+
+
+- **`query` 사용 시**: Elasticsearch로 장소를 검색해 중심 좌표를 찾은 후, 그 주변의 주차장을 검색합니다.
+
+- **`lat`, `lng` 사용 시**: Elasticsearch 검색을 건너뛰고, 해당 좌표 주변의 주차장을 즉시 검색합니다.
+
+
+
 **응답 예시:**
 
+
+
 ```json
+
 {
+
   "success": true,
+
   "data": {
+
     "content": [
+
       {
+
         "id": 123,
+
         "parkingLotName": "강남역 공영 주차장",
+
         "roadAddress": "서울 강남구 강남대로 396",
+
         "lotAddress": "서울 강남구 역삼동 825",
+
         "feeInfo": "유료",
+
         "lat": 37.4979,
+
         "lng": 127.0276,
+
         "distance": 150.0
+
       }
+
     ],
+
     "currentPage": 1,
+
     "totalPages": 1,
+
     "totalElements": 1
+
   },
+
   "timestamp": "2025-10-15T12:00:00.000Z"
+
 }
+
 ```
 
 </br>

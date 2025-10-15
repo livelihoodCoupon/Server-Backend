@@ -316,4 +316,5 @@ class ElasticServiceTest {
 
 		assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
 	}
+
 }

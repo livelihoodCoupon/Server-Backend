@@ -23,6 +23,8 @@ import org.mockito.ArgumentCaptor;
 import java.util.Collections;
 
 import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.exception.BusinessException;
+import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.common.service.KakaoApiService;
 import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
@@ -243,38 +245,71 @@ class ElasticServiceTest {
 	}
 
 	@Test
-	@DisplayName("장소 기반 주변 주차장 검색 성공")
-	void searchParkingLotsNearPlace_success() throws IOException {
+	@DisplayName("장소 기반 주변 주차장 검색 (쿼리 사용) 성공")
+	void searchParkingLotsNearPlace_withQuery_success() throws IOException {
 		// given
 		ElasticService spyElasticService = spy(elasticService);
-
 		SearchRequestDto request = new SearchRequestDto();
 		request.setQuery("강남역");
+		request.setLat(null); // 쿼리 기반 검색을 위해 좌표는 null로 설정
+		request.setLng(null);
 
-		// 1. elasticSearch 모의 결과 설정
-		double centerLat = 37.4979;
-		double centerLng = 127.0276;
-		Page<PlaceSearchResponseDto> emptyPage = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 1), 0);
-		SearchServiceResult mockPlaceSearchResult = new SearchServiceResult(emptyPage, centerLat, centerLng);
+		double expectedLat = 37.4979;
+		double expectedLng = 127.0276;
+		SearchServiceResult mockPlaceSearchResult = new SearchServiceResult(Page.empty(), expectedLat, expectedLng);
 
+		// elasticSearch 메소드 모의 처리
 		doReturn(mockPlaceSearchResult).when(spyElasticService).elasticSearch(any(SearchRequestDto.class), eq(1), eq(1));
-
-		// 2. parkingLotService.findNearby 모의 결과 설정
-		PageResponse<ParkingLotNearbyResponse> mockParkingLotResponse = new PageResponse<>(new PageImpl<>(Collections.emptyList()), 10, centerLat, centerLng);
-		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(mockParkingLotResponse);
+		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(new PageResponse<>(Page.empty(), 10, expectedLat, expectedLng));
 
 		// when
 		spyElasticService.searchParkingLotsNearPlace(request);
 
 		// then
-		// elasticSearch가 호출되었는지 검증
-		verify(spyElasticService, times(1)).elasticSearch(request, 1, 1);
-
-		// parkingLotService.findNearby가 올바른 좌표로 호출되었는지 검증
+		verify(spyElasticService, times(1)).elasticSearch(request, 1, 1); // elasticSearch 호출 검증
 		ArgumentCaptor<NearbySearchRequest> captor = ArgumentCaptor.forClass(NearbySearchRequest.class);
-		verify(parkingLotService, times(1)).findNearby(captor.capture());
-		NearbySearchRequest capturedRequest = captor.getValue();
-		assertThat(capturedRequest.getLat()).isEqualTo(centerLat);
-		assertThat(capturedRequest.getLng()).isEqualTo(centerLng);
+		verify(parkingLotService, times(1)).findNearby(captor.capture()); // findNearby 호출 검증
+		assertThat(captor.getValue().getLat()).isEqualTo(expectedLat);
+		assertThat(captor.getValue().getLng()).isEqualTo(expectedLng);
+	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 (좌표 사용) 성공")
+	void searchParkingLotsNearPlace_withCoords_success() throws IOException {
+		// given
+		ElasticService spyElasticService = spy(elasticService);
+		SearchRequestDto request = new SearchRequestDto();
+		request.setQuery(null); // 좌표 기반 검색을 위해 쿼리는 null로 설정
+		request.setLat(37.5000);
+		request.setLng(127.0300);
+
+		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(new PageResponse<>(Page.empty(), 10, request.getLat(), request.getLng()));
+
+		// when
+		spyElasticService.searchParkingLotsNearPlace(request);
+
+		// then
+		verify(spyElasticService, never()).elasticSearch(any(), anyInt(), anyInt()); // elasticSearch 호출되지 않음 검증
+		ArgumentCaptor<NearbySearchRequest> captor = ArgumentCaptor.forClass(NearbySearchRequest.class);
+		verify(parkingLotService, times(1)).findNearby(captor.capture()); // findNearby 호출 검증
+		assertThat(captor.getValue().getLat()).isEqualTo(request.getLat());
+		assertThat(captor.getValue().getLng()).isEqualTo(request.getLng());
+	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 (입력값 없음) 실패")
+	void searchParkingLotsNearPlace_withNoInput_throwsException() {
+		// given
+		SearchRequestDto request = new SearchRequestDto();
+		request.setQuery(""); // 쿼리 없음
+		request.setLat(null); // 좌표 없음
+		request.setLng(null);
+
+		// when & then
+		BusinessException exception = assertThrows(BusinessException.class, () -> {
+			elasticService.searchParkingLotsNearPlace(request);
+		});
+
+		assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
 	}
 }

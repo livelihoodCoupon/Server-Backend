@@ -13,9 +13,9 @@ spring:
       idle-timeout: 10000      # 10초 동안 미사용 시 커넥션 종료
       max-lifetime: 30000      # 커넥션 최대 수명 30초 → 컨테이너 내려가기 전에 정리됨
       connection-timeout: 20000
-  sql:
-    init:
-      mode: never
+  batch:
+    jdbc:
+      initialize-schema: never #배치 스키마 자동 생성 비활성화
   jpa:
     hibernate:
       ddl-auto: create-drop

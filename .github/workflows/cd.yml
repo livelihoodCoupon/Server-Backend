@@ -107,5 +107,5 @@ jobs:
             echo "Cleaning up unused Docker images..."
             docker image prune -af
             
-            echo "Deployment completed!!!~~"
+            echo "Deployment completed!!!~~~~"
 

@@ -108,3 +108,4 @@ jobs:
             docker image prune -af
             
             echo "Deployment completed!!!~~~~"
+

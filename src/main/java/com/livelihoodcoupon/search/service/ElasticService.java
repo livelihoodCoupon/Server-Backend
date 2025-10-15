@@ -179,11 +179,26 @@ public class ElasticService {
 	 * @throws IOException
 	 */
 	public PageResponse<ParkingLotNearbyResponse> searchParkingLotsNearPlace(SearchRequestDto request) throws IOException {
-		// 1. 엘라스틱서치를 호출하여 사용자의 쿼리에 대한 중심 좌표를 찾습니다.
-		// 이 호출에서는 실제 장소 목록은 필요 없으므로, 페이지 크기를 1로 지정하여 최소한의 데이터만 가져옵니다.
-		SearchServiceResult placeSearchResult = this.elasticSearch(request, 1, 1);
-		double centerLat = placeSearchResult.getSearchCenterLat();
-		double centerLng = placeSearchResult.getSearchCenterLng();
+		double centerLat;
+		double centerLng;
+
+		// 쿼리가 비어있고, 좌표가 있는 경우 좌표 기반으로 검색
+		if (!org.springframework.util.StringUtils.hasText(request.getQuery()) && request.getLat() != null && request.getLng() != null) {
+			centerLat = request.getLat();
+			centerLng = request.getLng();
+			log.info("좌표 기반으로 주차장 검색을 시작합니다. Lat: {}, Lng: {}", centerLat, centerLng);
+		}
+		// 쿼리가 있는 경우, ES로 장소 검색 후 좌표 추출
+		else if (org.springframework.util.StringUtils.hasText(request.getQuery())) {
+			log.info("장소 검색어 '{}' 기반으로 주차장 검색을 시작합니다.", request.getQuery());
+			SearchServiceResult placeSearchResult = this.elasticSearch(request, 1, 1);
+			centerLat = placeSearchResult.getSearchCenterLat();
+			centerLng = placeSearchResult.getSearchCenterLng();
+		}
+		// 둘 다 없는 경우
+		else {
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "좌표 또는 검색어가 필요합니다.");
+		}
 
 		// 2. 주차장 검색 서비스에 사용할 요청 객체를 준비합니다.
 		NearbySearchRequest parkingRequest = new NearbySearchRequest();

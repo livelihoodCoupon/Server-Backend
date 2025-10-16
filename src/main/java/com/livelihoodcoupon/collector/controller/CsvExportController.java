@@ -52,4 +52,17 @@ public class CsvExportController {
 
 		return ResponseEntity.ok(CustomApiResponse.success("DB 데이터를 CSV로 내보내는 작업이 백그라운드에서 시작되었습니다."));
 	}
+
+	/**
+	 * 주차장 데이터를 CSV로 내보내는 작업을 시작합니다.
+	 * @return 내보내기 작업 시작 성공 메시지
+	 */
+	@PostMapping("/parking-lot-csv")
+	public ResponseEntity<CustomApiResponse<?>> triggerParkingLotCsvExport() {
+		// 비동기 처리를 위해 새 스레드에서 실행
+		new Thread(csvExportService::exportParkingFinalToCsv).start();
+
+		return ResponseEntity.ok(CustomApiResponse.success("주차장 DB 데이터를 CSV로 내보내는 작업이 백그라운드에서 시작되었습니다."));
+	}
+
 }

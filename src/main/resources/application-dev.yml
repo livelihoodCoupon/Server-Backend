@@ -24,3 +24,7 @@ batch:
     incremental-path: data/new-csv/
 cors:
   allowed-origins: ${CORS_URL}
+
+logging:
+  level:
+    org.hibernate.type.descriptor.sql: trace

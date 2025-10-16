@@ -17,51 +17,51 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.livelihoodcoupon.collector.dto.KakaoMeta;
-import com.livelihoodcoupon.collector.dto.KakaoPlace;
-import com.livelihoodcoupon.collector.dto.KakaoResponse;
 import com.livelihoodcoupon.collector.entity.ScannedGrid;
-import com.livelihoodcoupon.collector.repository.PlaceRepository;
+import com.livelihoodcoupon.collector.repository.CollectorPlaceRepository;
 import com.livelihoodcoupon.collector.repository.ScannedGridRepository;
 import com.livelihoodcoupon.collector.vo.RegionData;
+import com.livelihoodcoupon.common.dto.KakaoMeta;
+import com.livelihoodcoupon.common.dto.KakaoPlace;
+import com.livelihoodcoupon.common.dto.KakaoResponse;
+import com.livelihoodcoupon.common.service.KakaoApiService;
 
 @ExtendWith(MockitoExtension.class)
 class CouponDataCollectorTest {
 
+	@Spy
 	@InjectMocks
 	private CouponDataCollector couponDataCollector;
 
 	@Mock
 	private KakaoApiService kakaoApiService;
 	@Mock
-	private PlaceRepository placeRepository;
+	private CollectorPlaceRepository collectorPlaceRepository;
 	@Mock
 	private ScannedGridRepository scannedGridRepository;
 	@Mock
 	private CsvExportService csvExportService;
 	@Mock
 	private GeoJsonExportService geoJsonExportService;
-	@Spy
-	private ObjectMapper objectMapper = new ObjectMapper();
 
 	private RegionData testRegion;
 
 	@BeforeEach
 	void setUp() {
 		// 테스트에 사용할 기본 지역 데이터 설정
-		// GridUtil이 최소 하나의 격자를 생성하도록, 격자 반경(512m)보다 큰 Polygon을 사용합니다.
-		// 약 1km x 1km 크기의 사각형으로 설정합니다.
-		List<List<Double>> polygon = List.of(
+		// 폴리곤을 10000m보다 크게 만들어, 기본 격자 크기(512m)를 사용하도록 유도
+		// 0.1도는 약 11.1km에 해당
+		List<List<Double>> polygonRing = List.of(
 			List.of(127.0, 37.0),
-			List.of(127.01, 37.0),
-			List.of(127.01, 37.01),
-			List.of(127.0, 37.01),
+			List.of(127.1, 37.0),
+			List.of(127.1, 37.1),
+			List.of(127.0, 37.1),
 			List.of(127.0, 37.0) // Polygon은 시작점과 끝점이 같아야 합니다.
 		);
+		List<List<List<Double>>> polygon = List.of(polygonRing);
 		testRegion = new RegionData();
 		testRegion.setName("테스트지역");
-		testRegion.setPolygon(polygon);
+		testRegion.setPolygons(List.of(polygon));
 	}
 
 	private KakaoPlace createDummyPlace() {
@@ -75,7 +75,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("신규 지역의 격자가 [일반 지역]일 경우, COMPLETED로 상태를 저장해야 한다")
-	void collectForSingleRegion_whenCellIsNormal_savesAsCompleted() throws Exception {
+	void collectForSingleRegion_whenCellIsNormal_savesAsCompleted() {
 		// given
 		// API가 "일반 지역" 응답을 반환하도록 설정
 		KakaoResponse normalResponse = mock(KakaoResponse.class);
@@ -98,7 +98,7 @@ class CouponDataCollectorTest {
 
 		// then
 		// 장소 저장이 호출되었는지 검증
-		verify(placeRepository, atLeastOnce()).saveAll(any());
+		verify(collectorPlaceRepository, atLeastOnce()).saveAll(any());
 
 		// 격자 상태가 COMPLETED로 저장되었는지 검증
 		ArgumentCaptor<ScannedGrid> captor = ArgumentCaptor.forClass(ScannedGrid.class);
@@ -108,7 +108,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("신규 지역의 격자가 [밀집 지역]일 경우, SUBDIVIDED로 상태를 저장해야 한다")
-	void collectForSingleRegion_whenCellIsDense_savesAsSubdivided() throws Exception {
+	void collectForSingleRegion_whenCellIsDense_savesAsSubdivided() {
 		// given
 		// 512m 격자는 "밀집 지역"으로, 하위 256m 격자는 "일반 지역"으로 응답하도록 설정
 		KakaoResponse denseResponse = mock(KakaoResponse.class, "dense");
@@ -140,7 +140,7 @@ class CouponDataCollectorTest {
 
 		// then
 		// 밀집 지역이므로 최상위 레벨에서는 장소 저장이 호출되지 않아야 함
-		verify(placeRepository, never()).saveAll(any());
+		verify(collectorPlaceRepository, never()).saveAll(any());
 
 		// 512m 격자 상태가 SUBDIVIDED로 저장되었는지 검증
 		ArgumentCaptor<ScannedGrid> captor = ArgumentCaptor.forClass(ScannedGrid.class);
@@ -152,7 +152,7 @@ class CouponDataCollectorTest {
 
 	@Test
 	@DisplayName("SUBDIVIDED로 기록된 격자는 API 호출 없이 하위 탐색을 수행해야 한다")
-	void collectForSingleRegion_whenGridIsSubdivided_resumesFromNextLevel() throws Exception {
+	void collectForSingleRegion_whenGridIsSubdivided_resumesFromNextLevel() {
 		// given
 		// 512m 격자는 SUBDIVIDED로, 하위 256m 격자는 신규 격자로 설정
 		ScannedGrid subdividedGrid = ScannedGrid.builder().status(ScannedGrid.GridStatus.SUBDIVIDED).build();
@@ -212,9 +212,94 @@ class CouponDataCollectorTest {
 		verify(kakaoApiService, never()).searchPlaces(anyString(), anyDouble(), anyDouble(), anyInt(), anyInt());
 
 		// Verify that no places were saved
-		verify(placeRepository, never()).saveAll(any());
+		verify(collectorPlaceRepository, never()).saveAll(any());
 
 		// Verify that no new progress was saved
 		verify(scannedGridRepository, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("작은 지역의 경우, 기본 격자 크기보다 작은 256m로 탐색을 시작해야 한다")
+	void collectForSingleRegion_whenRegionIsSmall_usesSmallerGrid() throws Exception {
+		// given
+		// '작은 지역' 생성 (1km x 1km)
+		List<List<Double>> smallPolygonRing = List.of(
+			List.of(127.0, 37.0),
+			List.of(127.01, 37.0),
+			List.of(127.01, 37.01),
+			List.of(127.0, 37.01),
+			List.of(127.0, 37.0)
+		);
+		List<List<List<Double>>> smallPolygon = List.of(smallPolygonRing);
+		RegionData smallTestRegion = new RegionData();
+		smallTestRegion.setName("작은테스트지역");
+		smallTestRegion.setPolygons(List.of(smallPolygon));
+
+		// API가 "일반 지역" 응답을 반환하도록 설정
+		KakaoResponse normalResponse = mock(KakaoResponse.class);
+		KakaoMeta normalMeta = mock(KakaoMeta.class);
+		when(normalResponse.getMeta()).thenReturn(normalMeta);
+		when(normalMeta.getTotal_count()).thenReturn(5); // Not dense
+		when(normalResponse.getDocuments()).thenReturn(List.of(createDummyPlace()));
+
+		// 어떤 격자 크기로든 API가 호출되면 normalResponse를 반환하도록 설정
+		when(kakaoApiService.searchPlaces(anyString(), anyDouble(), anyDouble(), anyInt(), anyInt()))
+			.thenReturn(normalResponse);
+
+		when(scannedGridRepository.findByRegionNameAndKeywordAndGridCenterLatAndGridCenterLngAndGridRadius(anyString(),
+			anyString(), anyDouble(), anyDouble(),
+			anyInt()))
+			.thenReturn(Optional.empty());
+
+		// when
+		couponDataCollector.collectForSingleRegion(smallTestRegion);
+
+		// then
+		// API가 256m 격자 크기로 호출되었는지 검증
+		verify(kakaoApiService, atLeastOnce()).searchPlaces(
+			eq(CouponDataCollector.DEFAULT_KEYWORD),
+			anyDouble(),
+			anyDouble(),
+			eq(256), // 격자 크기가 256m로 호출되었는지 확인
+			anyInt()
+		);
+
+		// 512m 격자 크기로는 호출되지 않았는지 검증
+		verify(kakaoApiService, never()).searchPlaces(
+			anyString(),
+			anyDouble(),
+			anyDouble(),
+			eq(512), // 512m 격자는 사용되지 않아야 함
+			anyInt()
+		);
+	}
+
+	@Test
+	@DisplayName("MultiPolygon 지역의 경우, 모든 하위 폴리곤에 대해 탐색을 시도해야 한다")
+	void collectForSingleRegion_whenRegionIsMultiPolygon_processesAllPolygons() throws Exception {
+		// given
+		// 두 개의 분리된 작은 폴리곤을 가진 MultiPolygon 지역 생성
+		List<List<Double>> polygonRing1 = List.of(
+			List.of(127.0, 37.0), List.of(127.001, 37.0), List.of(127.001, 37.001), List.of(127.0, 37.001),
+			List.of(127.0, 37.0)
+		);
+		List<List<Double>> polygonRing2 = List.of(
+			List.of(128.0, 38.0), List.of(128.001, 38.0), List.of(128.001, 38.001), List.of(128.0, 38.001),
+			List.of(128.0, 38.0)
+		);
+
+		RegionData multiPolygonRegion = new RegionData();
+		multiPolygonRegion.setName("멀티폴리곤테스트지역");
+		multiPolygonRegion.setPolygons(List.of(List.of(polygonRing1), List.of(polygonRing2)));
+
+		// scanAndCollectForPolygon 메서드가 실제 로직을 실행하지 않도록 스파이 설정
+		doNothing().when(couponDataCollector).scanAndCollectForPolygon(anyList(), anyInt(), anySet(), anyString());
+
+		// when
+		couponDataCollector.collectForSingleRegion(multiPolygonRegion);
+
+		// then
+		// scanAndCollectForPolygon 메서드가 각 하위 폴리곤에 대해 정확히 2번 호출되었는지 검증
+		verify(couponDataCollector, times(2)).scanAndCollectForPolygon(anyList(), anyInt(), anySet(), anyString());
 	}
 }

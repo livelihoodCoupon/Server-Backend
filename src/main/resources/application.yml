@@ -5,17 +5,51 @@ spring:
     name: livelihoodCoupon
   profiles:
     active: dev
-    include: local # 항상 local 프로파일 포함
+    #include: local # 항상 local 프로파일 포함
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
+  # Redis 캐싱 설정
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10분 (밀리초)
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+    batch:
+      job:
+        enabled: false   # 모든 프로파일의 기본값을 '자동실행 OFF'로
+
+  batch:
+    job:
+      enabled: false # 애플리케이션 시작 시 자동 배치 실행 비활성화
+    jdbc:
+      initialize-schema: always
+
+# OSRM 설정
+osrm:
+  # OSRM 서버별 설정
+  servers:
+    car: ${OSRM_CAR_URL:http://localhost:5004}
+    foot: ${OSRM_FOOT_URL:http://localhost:5001}
+    bike: ${OSRM_BIKE_URL:http://localhost:5002}
+    transit: ${OSRM_FOOT_URL:http://localhost:5001}  # transit은 현재는 foot과 동일한 결과 반환
 
 # Actuator 엔드포인트 구성
 management:
   server:
-  #    port: 9091 # 관리용 포트 분리
+  # port: 9091 # 관리용 포트 분리
   endpoints:
     web:
       exposure:
@@ -24,3 +58,13 @@ management:
     distribution:
       percentiles-histogram:
         http.server.requests: true
+
+elasticsearch:
+  host: ${ELASTICSEARCH_HOST:elasticsearch}
+  port: ${ELASTICSEARCH_PORT:9200}
+  scheme: ${ELASTICSEARCH_SCHEME:http}
+
+# 검색 설정
+search:
+  page-size: 100
+  max-results: 100

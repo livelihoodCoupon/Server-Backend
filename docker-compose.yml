@@ -1,22 +1,44 @@
 services:
   collector-app:
+    image: ${DOCKER_IMAGE:-}
+    env_file:
+      - .env   # docker-compose.yml과 같은 디렉토리에 .env 파일 있어야 함
     depends_on:
-      postgres: # mysql -> postgres로 변경
+      postgres:
         condition: service_healthy
-    restart: on-failure # 실패 시 재시작 옵션 추가
+      redis: # infra/database/docker-compose.yml에 정의된 redis
+        condition: service_healthy
+    restart: on-failure
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: livelihood-coupon-collector-app-1
+    container_name: livelihoodCoupon-collector-app-1
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=local
+      - POSTGRES_DB_URL=${POSTGRES_DB_URL}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - TZ=Asia/Seoul
+      - SPRING_PROFILES_ACTIVE=dev
       - KAKAO_API_KEY=${KAKAO_API_KEY}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - OSRM_CAR_URL=http://osrm-car:5000
+      - OSRM_FOOT_URL=http://osrm-foot:5000
+      - OSRM_BIKE_URL=http://osrm-bike:5000
+      - SPRING_BATCH_JOB_ENABLED=false                 # 배치 자동실행 OFF
+      - BATCH_CSV_FILE_PATH=/app/data/csv            # 소비쿠폰 CSV 디렉토리
+      - BATCH_PARKING_CSV_FILE=/app/data/parkinglotcsv/전국주차장정보표준데이터.csv  # Parking 단일 CSV 파일
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
     networks:
       - livelihoodCoupon-net
+
+networks:
+  livelihoodCoupon-net:
+    driver: bridge
+

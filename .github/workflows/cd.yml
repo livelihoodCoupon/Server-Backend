@@ -2,9 +2,9 @@ name: Full Backend & Infra CD (App + Infra)
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -107,5 +107,5 @@ jobs:
             echo "Cleaning up unused Docker images..."
             docker image prune -af
             
-            echo "Deployment completed!!!~~~~"
+            echo "Deployment completed!!!~~~~~~"
 

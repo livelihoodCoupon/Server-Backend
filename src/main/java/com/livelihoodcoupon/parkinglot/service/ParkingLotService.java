@@ -8,14 +8,13 @@ import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotDetailResponse;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotWithDistance;
-import com.livelihoodcoupon.parkinglot.entity.ParkingLot;
 import com.livelihoodcoupon.parkinglot.repository.ParkingLotRepository;
-import com.livelihoodcoupon.place.entity.Place;
-import com.livelihoodcoupon.place.repository.PlaceRepository;
 import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
-
+import com.livelihoodcoupon.search.entity.ParkingLotDocument;
+import com.livelihoodcoupon.search.service.ElasticParkingLotService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,23 +22,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.Collections;
-import java.util.List;
+import java.io.IOException;
 import java.util.Objects;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ParkingLotService {
 
-	private final PlaceRepository placeRepository;
-	private final ParkingLotRepository parkingLotRepository;
+	private final ParkingLotRepository parkingLotRepository; // For DB-based nearby search
 	private final KakaoApiService kakaoApiService;
+	private final ElasticParkingLotService elasticParkingLotService; // For ES-based operations
+
 	private static final int DEFAULT_SEARCH_RADIUS_METER = 500;
     private static final int MAX_SEARCH_RADIUS_METER = 1000;
 
+	// This method remains for the old DB-based search endpoint
 	public PageResponse<ParkingLotNearbyResponse> searchByQueryOrCoord(SearchRequestDto request) {
 		Coordinate searchCenter;
-
 
 		if (Objects.nonNull(request.getLat()) && Objects.nonNull(request.getLng())) {
 			searchCenter = Coordinate.builder().lat(request.getLat()).lng(request.getLng()).build();
@@ -65,6 +65,7 @@ public class ParkingLotService {
 		return findNearby(nearbyRequest);
 	}
 
+	// This method remains for the old DB-based search endpoint
 	public PageResponse<ParkingLotNearbyResponse> findNearby(NearbySearchRequest request) {
 		final double KM_TO_M_THRESHOLD = 100.0;
 
@@ -74,7 +75,6 @@ public class ParkingLotService {
 		if (radiusFromRequest == null || radiusFromRequest <= 0) {
 			radiusInMeters = DEFAULT_SEARCH_RADIUS_METER;
 		} else {
-			// Heuristic: If the value is small, assume it's in KM and convert it. Otherwise, assume it's already in meters.
 			if (radiusFromRequest < KM_TO_M_THRESHOLD) {
 				radiusInMeters = radiusFromRequest * 1000; // km -> m conversion
 			} else {
@@ -101,29 +101,16 @@ public class ParkingLotService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<ParkingLotWithDistance> findNearbyParkingLots(Long placeId) {
-		Place place = placeRepository.findById(placeId)
-			.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-
-		if (place.getLocation() == null) {
-			return Collections.emptyList();
-		}
-
-		Pageable pageable = PageRequest.of(0, 10);
-
-		return parkingLotRepository.findNearbyParkingLots(
-			place.getLocation().getY(), // Latitude
-			place.getLocation().getX(), // Longitude
-			DEFAULT_SEARCH_RADIUS_METER,
-			pageable
-		).getContent();
-	}
-
-	@Transactional(readOnly = true)
 	public ParkingLotDetailResponse getParkingLotDetails(Long id) {
-		ParkingLot parkingLot = parkingLotRepository.findById(id)
-			.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "해당 주차장을 찾을 수 없습니다. ID: " + id));
-
-		return ParkingLotDetailResponse.fromParkingLot(parkingLot);
+		try {
+			ParkingLotDocument doc = elasticParkingLotService.getParkingLotById(id.toString());
+			if (doc == null) {
+				throw new BusinessException(ErrorCode.NOT_FOUND, "해당 주차장을 찾을 수 없습니다. ID: " + id);
+			}
+			return ParkingLotDetailResponse.fromDocument(doc);
+		} catch (IOException e) {
+			log.error("Elasticsearch에서 주차장 상세 정보 조회 중 오류 발생. ID: {}", id, e);
+			throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "상세 정보 조회 중 오류가 발생했습니다.");
+		}
 	}
 }

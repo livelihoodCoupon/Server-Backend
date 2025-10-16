@@ -1,0 +1,182 @@
+{
+  "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 1,
+    "analysis": {
+      "tokenizer": {
+        "autocomplete_edge_ngram_tokenizer": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 10,
+          "token_chars": [
+            "letter",
+            "digit",
+            "whitespace"
+          ]
+        }
+      },
+      "analyzer": {
+        "autocomplete_edge_ngram_analyzer": {
+          "type": "custom",
+          "tokenizer": "autocomplete_edge_ngram_tokenizer",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "autocomplete_search_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase"
+          ]
+        },
+        "nori_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer",
+          "filter": [
+            "lowercase"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "long"
+      },
+      "parking_lot_no": {
+        "type": "keyword"
+      },
+      "parking_lot_nm": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          },
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "parking_lot_se": {
+        "type": "keyword"
+      },
+      "parking_lot_type": {
+        "type": "keyword"
+      },
+      "road_address": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "lot_address": {
+        "type": "text",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete_edge_ngram_analyzer",
+            "search_analyzer": "autocomplete_search_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          }
+        }
+      },
+      "parking_capacity": {
+        "type": "keyword"
+      },
+      "feeding_se": {
+        "type": "keyword"
+      },
+      "enforce_se": {
+        "type": "keyword"
+      },
+      "oper_day": {
+        "type": "keyword"
+      },
+      "week_open_time": {
+        "type": "keyword"
+      },
+      "week_close_time": {
+        "type": "keyword"
+      },
+      "sat_open_time": {
+        "type": "keyword"
+      },
+      "sat_close_time": {
+        "type": "keyword"
+      },
+      "holiday_open_time": {
+        "type": "keyword"
+      },
+      "holiday_close_time": {
+        "type": "keyword"
+      },
+      "parking_charge_info": {
+        "type": "text",
+        "analyzer": "nori_analyzer"
+      },
+      "basic_time": {
+        "type": "keyword"
+      },
+      "basic_charge": {
+        "type": "keyword"
+      },
+      "add_unit_time": {
+        "type": "keyword"
+      },
+      "add_unit_charge": {
+        "type": "keyword"
+      },
+      "day_ticket_apply_time": {
+        "type": "keyword"
+      },
+      "day_ticket_charge": {
+        "type": "keyword"
+      },
+      "payment_method": {
+        "type": "keyword"
+      },
+      "special_comment": {
+        "type": "text",
+        "analyzer": "nori_analyzer"
+      },
+      "institution_name": {
+        "type": "keyword"
+      },
+      "phone_number": {
+        "type": "keyword"
+      },
+      "location": {
+        "type": "geo_point"
+      },
+      "disabled_parking_zone_yn": {
+        "type": "keyword"
+      },
+      "reference_date": {
+        "type": "keyword"
+      },
+      "institution_code": {
+        "type": "keyword"
+      }
+    }
+  }
+}

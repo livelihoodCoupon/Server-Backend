@@ -1,18 +1,18 @@
 package com.livelihoodcoupon.batch.controller;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import com.livelihoodcoupon.common.exception.ErrorCode;
+import com.livelihoodcoupon.common.response.CustomApiResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +20,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.livelihoodcoupon.common.exception.ErrorCode;
-import com.livelihoodcoupon.common.response.CustomApiResponse;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -35,6 +36,7 @@ public class ElasticsearchBatchController {
 
 	private final JobLauncher jobLauncher;
 	private final ResourcePatternResolver resourcePatternResolver;
+	private final ElasticsearchClient elasticsearchClient;
 
 	@Qualifier("placeCsvToEsJob")
 	private final Job placeCsvToEsJob;
@@ -42,8 +44,56 @@ public class ElasticsearchBatchController {
 	@Qualifier("placeCsvToEsIncrementalAddJob")
 	private final Job placeCsvToEsIncrementalAddJob;
 
+	@Qualifier("parkingLotCsvToEsJob")
+	private final Job parkingLotCsvToEsJob;
+
 	@Value("${batch.csv.file.path}")
 	private String csvFilePath;
+
+	@PostMapping("/parkinglots-index")
+	public ResponseEntity<CustomApiResponse<?>> createParkingLotIndex() {
+		String indexName = "parkinglots";
+		try {
+			boolean indexExists = elasticsearchClient.indices().exists(r -> r.index(indexName)).value();
+			if (indexExists) {
+				log.info("인덱스 '{}'가 이미 존재합니다.", indexName);
+				return ResponseEntity.ok(CustomApiResponse.success("인덱스가 이미 존재합니다."));
+			}
+
+			Resource mappingResource = new ClassPathResource("elasticsearch/parkinglots-mapping.json");
+			try (InputStream mappingInputStream = mappingResource.getInputStream()) {
+				CreateIndexRequest createIndexRequest = new CreateIndexRequest.Builder()
+						.index(indexName)
+						.withJson(mappingInputStream)
+						.build();
+				elasticsearchClient.indices().create(createIndexRequest);
+				log.info("인덱스 '{}'를 성공적으로 생성했습니다.", indexName);
+				return ResponseEntity.ok(CustomApiResponse.success("인덱스 생성 성공"));
+			}
+		} catch (IOException e) {
+			log.error("인덱스 '{}' 생성 중 오류 발생", indexName, e);
+			return ResponseEntity.internalServerError()
+					.body(CustomApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, "인덱스 생성 실패: " + e.getMessage()));
+		}
+	}
+
+	@PostMapping("/parkinglots-csv")
+	public ResponseEntity<CustomApiResponse<?>> runParkingLotCsvToEsBatch() {
+		try {
+			log.info("ParkingLot CSV to ES 배치 작업 시작 요청됨");
+			// The batch job now reads the file path from properties, so no parameter is needed.
+			startBatchJobAsync(parkingLotCsvToEsJob, "parkingLotCsvToEsJob", null);
+			return ResponseEntity.ok(
+					CustomApiResponse.success("ParkingLot CSV to ES 배치 작업이 백그라운드에서 시작되었습니다.")
+			);
+		} catch (Exception e) {
+			log.error("ParkingLot CSV to ES 배치 작업 시작 중 오류 발생", e);
+			return ResponseEntity.internalServerError()
+					.body(CustomApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR,
+							"배치 작업 시작 중 오류가 발생했습니다: " + e.getMessage()));
+		}
+	}
+
 
 	@PostMapping("/new-csv")
 	public ResponseEntity<CustomApiResponse<?>> runCsvToEsBatchIncremental() {
@@ -105,12 +155,14 @@ public class ElasticsearchBatchController {
 
 					log.info("단계적 배치 그룹 {}/{} 시작. 파일: {}", i + 1, resourceGroups.size(), fileResources);
 
-					JobParameters jobParameters = new JobParametersBuilder()
-						.addString("JobID", String.valueOf(System.currentTimeMillis()))
-						.addString("fileResources", fileResources)
-						.toJobParameters();
+					JobParametersBuilder builder = new JobParametersBuilder()
+						.addString("JobID", String.valueOf(System.currentTimeMillis()));
 
-					jobLauncher.run(jobToRun, jobParameters);
+					if (fileResources != null && !fileResources.isEmpty()) {
+						builder.addString("fileResources", fileResources);
+					}
+
+					jobLauncher.run(jobToRun, builder.toJobParameters());
 					log.info("단계적 배치 그룹 {}/{} 완료.", i + 1, resourceGroups.size());
 
 					if (i < resourceGroups.size() - 1) {
@@ -127,14 +179,15 @@ public class ElasticsearchBatchController {
 		}).start();
 	}
 
-	private void startBatchJobAsync(Job jobToRun, String jobName, String fileResources) {
+	private void startBatchJobAsync(Job jobToRun, String jobName, String fileResource) {
 		new Thread(() -> {
 			try {
 				JobParametersBuilder builder = new JobParametersBuilder()
 					.addString("JobID", String.valueOf(System.currentTimeMillis()));
 
-				if (fileResources != null && !fileResources.isEmpty()) {
-					builder.addString("fileResources", fileResources);
+				if (fileResource != null && !fileResource.isEmpty()) {
+					// This parameter is now only for the place-related jobs
+					builder.addString("fileResources", fileResource);
 				}
 
 				jobLauncher.run(jobToRun, builder.toJobParameters());

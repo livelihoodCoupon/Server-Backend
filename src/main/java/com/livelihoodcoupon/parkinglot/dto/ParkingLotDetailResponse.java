@@ -2,6 +2,7 @@ package com.livelihoodcoupon.parkinglot.dto;
 
 import com.livelihoodcoupon.parkinglot.entity.ParkingLot;
 
+import com.livelihoodcoupon.search.entity.ParkingLotDocument;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +15,7 @@ import lombok.Setter;
 public class ParkingLotDetailResponse {
 
     private final Long id;
-    private final String parkingLotName;       // 주차장명
+    private final String parkingLotNm;       // 주차장명
     private final String roadAddress;        // 도로명 주소
     private final String lotAddress;         // 지번 주소
     private final String parkingCapacity;    // 주차공간 수
@@ -36,7 +37,7 @@ public class ParkingLotDetailResponse {
     public static ParkingLotDetailResponse fromParkingLot(ParkingLot parkingLot) {
         return ParkingLotDetailResponse.builder()
                 .id(parkingLot.getId())
-                .parkingLotName(parkingLot.getParkingLotNm())
+                .parkingLotNm(parkingLot.getParkingLotNm())
                 .roadAddress(parkingLot.getRoadAddress())
                 .lotAddress(parkingLot.getLotAddress())
                 .parkingCapacity(parkingLot.getParkingCapacity())
@@ -53,6 +54,29 @@ public class ParkingLotDetailResponse {
                 .phoneNumber(parkingLot.getPhoneNumber())
                 .lat(parkingLot.getLocation() != null ? parkingLot.getLocation().getY() : null)
                 .lng(parkingLot.getLocation() != null ? parkingLot.getLocation().getX() : null)
+                .build();
+    }
+
+    public static ParkingLotDetailResponse fromDocument(ParkingLotDocument doc) {
+        return ParkingLotDetailResponse.builder()
+                .id(doc.getId())
+                .parkingLotNm(doc.getParkingLotNm())
+                .roadAddress(doc.getRoadAddress())
+                .lotAddress(doc.getLotAddress())
+                .parkingCapacity(doc.getParkingCapacity())
+                .operDay(doc.getOperDay())
+                .weekOpenTime(doc.getWeekOpenTime())
+                .weekCloseTime(doc.getWeekCloseTime())
+                .satOpenTime(doc.getSatOpenTime())
+                .satCloseTime(doc.getSatCloseTime())
+                .holidayOpenTime(doc.getHolidayOpenTime())
+                .holidayCloseTime(doc.getHolidayCloseTime())
+                .parkingChargeInfo(doc.getParkingChargeInfo())
+                .paymentMethod(doc.getPaymentMethod())
+                .specialComment(doc.getSpecialComment())
+                .phoneNumber(doc.getPhoneNumber())
+                .lat(doc.getLocation() != null ? doc.getLocation().getLat() : null)
+                .lng(doc.getLocation() != null ? doc.getLocation().getLng() : null)
                 .build();
     }
 }

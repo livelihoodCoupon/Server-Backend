@@ -104,7 +104,9 @@ GET /admin/collect/{regionName}
 
 </br>
 
-### 3. CSV로 데이터 내보내기 API
+### 3. 데이터 내보내기 API (`/admin/exports`)
+
+#### 3.1. 장소 데이터 CSV 내보내기
 
 수집된 모든 지역 데이터를 CSV 파일로 내보냅니다.
 
@@ -127,6 +129,26 @@ POST /admin/exports/csv
 - 이 작업은 백그라운드에서 비동기적으로 실행됩니다
 - 데이터 양에 따라 처리 시간이 오래 걸릴 수 있습니다
 - 생성된 파일은 `data/csv/` 디렉토리에 저장됩니다
+
+</br>
+
+#### 3.2. 주차장 데이터 CSV 내보내기
+
+데이터베이스의 주차장 정보를 CSV 파일로 내보냅니다.
+
+```http
+POST /admin/exports/parking-lot-csv
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": "주차장 DB 데이터를 CSV로 내보내는 작업이 백그라운드에서 시작되었습니다.",
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
 
 </br>
 
@@ -200,6 +222,53 @@ POST /admin/batch/db/new-csv
 **주의사항:**
 
 - 이 작업은 기존 데이터를 유지한 채 새로운 데이터만 추가할 때 사용됩니다.
+
+</br>
+
+#### 5.3. 주차장 CSV 데이터 로드
+
+`전국주차장정보표준데이터.csv` 파일을 읽어 데이터베이스에 주차장 정보를 저장(적재)합니다.
+
+```http
+POST /admin/batch/db/parking-csv-to-db
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": "배치 작업이 시작되었습니다. execId=a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
+
+**주의사항:**
+
+- 이 작업은 비동기적으로 실행되며, 이미 실행 중인 경우 `409 Conflict` 에러가 발생합니다.
+
+</br>
+
+#### 5.4. 배치 작업 상태 조회
+
+현재 실행 중인 배치 작업(장소, 주차장)이 있는지 상태를 확인합니다.
+
+```http
+GET /admin/batch/db/status
+```
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "parkingRunning": true,
+    "placeRunning": false
+  },
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
 
 </br>
 
@@ -300,6 +369,34 @@ POST /admin/batch/es/new-csv
   "timestamp": "2025-10-09T12:00:00.000Z"
 }
 ```
+
+</br>
+
+### 8. 지오코딩 백필 API (`/admin/geocode`)
+
+데이터베이스에 좌표(`location`)가 없는 주소 데이터에 대해 지오코딩(주소->좌표 변환)을 재시도합니다.
+
+```http
+POST /admin/geocode/backfill
+```
+
+**Query Parameters:**
+
+- `limit` (integer, 선택): 한 번에 처리할 최대 데이터 수 (기본값: 500)
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": "backfill accepted: ok=500",
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
+
+**주의사항:**
+
+- 이 작업은 카카오 API를 호출하므로, API 호출량 제한에 유의해야 합니다.
 
 </br>
 
@@ -537,7 +634,207 @@ GET /api/suggestions
 
 </br>
 
-### 6. 길찾기 API
+### 6. 주변 주차장 검색 (Elasticsearch 연동, 권장)
+
+
+
+장소 검색어 또는 좌표를 기준으로 주변 주차장을 검색합니다. 요청 파라미터에 따라 두 가지 방식으로 동작합니다.
+
+
+
+```http
+
+GET /api/searches/parkinglots
+
+```
+
+
+
+**Query Parameters:**
+
+
+- `query`(string, 선택) : 중심점을 찾기 위한 장소 검색어 (예: "강남역"). `lat`, `lng`이 없을 경우 필수.
+- `lat`(double, 선택) : 검색의 중심이 될 위도. `query`가 없을 경우 `lng`과 함께 필수.
+- `lng`(double, 선택) : 검색의 중심이 될 경도. `query`가 없을 경우 `lat`과 함께 필수.
+- `page`(integer, 선택) : 조회할 페이지 번호 (기본값: 1)
+- `userLat`(double, 선택) : **거리 계산**의 기준이 될 사용자의 실제 위도.
+- `userLng`(double, 선택) : **거리 계산**의 기준이 될 사용자의 실제 경도.
+
+
+
+**동작 방식:**
+
+
+
+- **`query` 사용 시**: Elasticsearch로 장소를 검색해 중심 좌표를 찾은 후, 그 주변의 주차장을 검색합니다.
+
+- **`lat`, `lng` 사용 시**: Elasticsearch 검색을 건너뛰고, 해당 좌표 주변의 주차장을 즉시 검색합니다.
+
+
+
+**응답 예시:**
+
+
+
+```json
+
+{
+
+  "success": true,
+
+  "data": {
+
+    "content": [
+
+      {
+
+        "id": 123,
+
+        "parkingLotName": "강남역 공영 주차장",
+
+        "roadAddress": "서울 강남구 강남대로 396",
+
+        "lotAddress": "서울 강남구 역삼동 825",
+
+        "feeInfo": "유료",
+
+        "lat": 37.4979,
+
+        "lng": 127.0276,
+
+        "distance": 150.0
+
+      }
+
+    ],
+
+    "currentPage": 1,
+
+    "totalPages": 1,
+
+    "totalElements": 1
+
+  },
+
+  "timestamp": "2025-10-15T12:00:00.000Z"
+
+}
+
+```
+
+</br>
+
+### 7. 주변 주차장 검색 (좌표 기반)
+
+좌표와 반경을 기준으로 검색한 장소의 주변 주차장을 검색합니다. (DB 직접 조회)
+
+```http
+GET /api/parkinglots/nearby
+```
+
+**Query Parameters:**
+
+- `lat` (double, 필수): 중심점 위도
+- `lng` (double, 필수): 중심점 경도
+- `radius` (double, 선택): 검색 반경 (km 단위, 기본값: 1.0)
+- `page` (integer, 선택): 페이지 번호 (기본값: 1)
+- `size` (integer, 선택): 페이지 크기 (기본값: 10)
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [
+      {
+        "id": 123,
+        "parkingLotName": "강남역 공영 주차장",
+        "roadAddress": "서울 강남구 강남대로 396",
+        "lotAddress": "서울 강남구 역삼동 825",
+        "feeInfo": "유료",
+        "lat": 37.4979,
+        "lng": 127.0276,
+        "distance": 150.0
+      }
+    ],
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalElements": 1
+  },
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
+
+</br>
+
+### 8. 주차장 상세 정보 조회
+
+특정 주차장의 상세 정보를 조회합니다.
+
+```http
+GET /api/parkinglots/{id}
+```
+
+**Path Parameters:**
+
+- `id` (long, 필수): 주차장 ID
+
+**응답 예시:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "parkingLotName": "강남역 공영 주차장",
+    "roadAddress": "서울 강남구 강남대로 396",
+    "lotAddress": "서울 강남구 역삼동 825",
+    "parkingCapacity": "150",
+    "operDay": "평일+토요일+공휴일",
+    "weekOpenTime": "09:00",
+    "weekCloseTime": "23:00",
+    "satOpenTime": "09:00",
+    "satCloseTime": "23:00",
+    "holidayOpenTime": "09:00",
+    "holidayCloseTime": "23:00",
+    "parkingChargeInfo": "유료",
+    "paymentMethod": "카드",
+    "specialComment": "장애인 전용 구역 있음",
+    "phoneNumber": "02-123-4567",
+    "lat": 37.4979,
+    "lng": 127.0276
+  },
+  "timestamp": "2025-10-15T12:00:00.000Z"
+}
+```
+
+</br>
+
+### 9. (구) 텍스트/좌표 기반 주변 주차장 검색
+
+> **[참고]** 이 API는 초기 개발 버전입니다. 장소 이름 기반 검색은 `GET /api/searches/parkinglots` 사용을 권장합니다.
+
+텍스트 쿼리(주소) 또는 좌표를 기반으로 주변 주차장을 검색합니다.
+
+```http
+GET /api/search/parkinglots
+```
+
+**Query Parameters:**
+
+- `query` (string, 선택): 주소 검색어
+- `lat` (double, 선택): 위도
+- `lng` (double, 선택): 경도
+- `radius` (double, 선택): 검색 반경 (km 단위, 기본값: 1.0)
+- `page` (integer, 선택): 페이지 번호 (기본값: 1)
+
+**응답 예시:**
+(응답 형식은 `GET /api/parkinglots/nearby` 와 동일합니다.)
+
+</br>
+
+### 10. 길찾기 API
 
 출발지와 도착지 사이의 경로를 조회합니다. 하이브리드 시스템으로 카카오 API(자동차)와 OSRM(도보/자전거/대중교통)을 지원합니다.
 
@@ -669,7 +966,7 @@ curl -X GET "http://localhost:8080/api/routes/search?startLng=127.0276&startLat=
 
 </br>
 
-### 7. 경로 제공자 목록 조회 API
+### 11. 경로 제공자 목록 조회 API
 
 사용 가능한 경로 제공자 목록을 조회합니다.
 

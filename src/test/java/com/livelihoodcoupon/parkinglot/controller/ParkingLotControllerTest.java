@@ -110,7 +110,7 @@ class ParkingLotControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
+                .andExpect(jsonPath("$.error.code").value("C007"));
     }
 
     @Test

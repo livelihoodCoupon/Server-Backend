@@ -182,6 +182,8 @@ class ElasticServiceTest {
 	@DisplayName("장소 기반 주변 주차장 검색 (쿼리 사용) 성공")
 	void searchParkingLotsNearPlace_withQuery_success() throws IOException {
 		// given
+		// 자기 자신의 다른 메소드를 호출하는 경우, spy로 객체를 감싸서 특정 메소드의 행동만 정의한다.
+		ElasticService spiedElasticService = spy(new ElasticService(elasticPlaceService, elasticParkingLotService, searchService, kakaoApiService, analyzerTest, redisService, parkingLotService));
 		SearchRequestDto request = new SearchRequestDto();
 		request.setQuery("강남역");
 		request.setLat(null);
@@ -192,14 +194,14 @@ class ElasticServiceTest {
 		SearchServiceResult<PlaceSearchResponseDto> mockPlaceSearchResult = new SearchServiceResult<>(Page.empty(), expectedLat, expectedLng);
 
 		// elasticSearch 메소드 모의 처리
-		when(elasticService.elasticSearch(any(SearchRequestDto.class), eq(1), eq(1))).thenReturn(mockPlaceSearchResult);
+		doReturn(mockPlaceSearchResult).when(spiedElasticService).elasticSearch(any(SearchRequestDto.class), eq(1), eq(1));
 		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(new PageResponse<>(Page.empty(), 10, expectedLat, expectedLng));
 
 		// when
-		elasticService.searchParkingLotsNearPlace(request);
+		spiedElasticService.searchParkingLotsNearPlace(request);
 
 		// then
-		verify(elasticService, times(1)).elasticSearch(request, 1, 1); // elasticSearch 호출 검증
+		verify(spiedElasticService, times(1)).elasticSearch(request, 1, 1); // elasticSearch 호출 검증
 		ArgumentCaptor<NearbySearchRequest> captor = ArgumentCaptor.forClass(NearbySearchRequest.class);
 		verify(parkingLotService, times(1)).findNearby(captor.capture()); // findNearby 호출 검증
 		assertThat(captor.getValue().getLat()).isEqualTo(expectedLat);

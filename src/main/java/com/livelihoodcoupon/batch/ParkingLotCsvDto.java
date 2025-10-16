@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class ParkingLotCsvDto {
+	private Long id;
 	private String parkingLotNo;
 	private String parkingLotNm;
 	private String parkingLotSe;

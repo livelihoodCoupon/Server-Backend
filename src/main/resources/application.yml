@@ -27,6 +27,9 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: -1ms
+    batch:
+      job:
+        enabled: false   # 모든 프로파일의 기본값을 '자동실행 OFF'로
 
   batch:
     job:

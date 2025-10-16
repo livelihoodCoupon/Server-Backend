@@ -1,3 +1,4 @@
+
 package com.livelihoodcoupon.search.service;
 
 import java.io.IOException;
@@ -17,9 +18,13 @@ import com.livelihoodcoupon.common.dto.Coordinate;
 import com.livelihoodcoupon.common.exception.BusinessException;
 import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
+import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
+import com.livelihoodcoupon.parkinglot.service.ParkingLotService;
 import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
+import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchServiceResult;
@@ -43,15 +48,18 @@ public class ElasticService {
 	private final KakaoApiService kakaoApiService;
 	private final AnalyzerTest analyzerTest;
 	private final RedisService redisService;
+	private final ParkingLotService parkingLotService;
 	private final Komoran komoran = new Komoran(DEFAULT_MODEL.FULL);
 
 	public ElasticService(ElasticPlaceService elasticPlaceService, SearchService searchService,
-		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest, RedisService redisService) {
+		KakaoApiService kakaoApiService, AnalyzerTest analyzerTest, RedisService redisService,
+		ParkingLotService parkingLotService) {
 		this.elasticPlaceService = elasticPlaceService;
 		this.searchService = searchService;
 		this.kakaoApiService = kakaoApiService;
 		this.analyzerTest = analyzerTest;
 		this.redisService = redisService;
+		this.parkingLotService = parkingLotService;
 	}
 
 	/**
@@ -118,9 +126,9 @@ public class ElasticService {
 		double searchLng = dto.getLng();
 		log.info("엘라스틱 서치 현재 위치 latitude:{}, longitude:{}", searchLat, searchLng);
 
-		// forceLocationSearch가 true이면, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용
-		if (dto.isForceLocationSearch()) {
-			log.info("forceLocationSearch가 true이므로, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용합니다.");
+		// forceLocationSearch가 true이거나 disableGeoFilter가 true인 경우, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용
+		if (dto.isForceLocationSearch() || dto.isDisableGeoFilter()) {
+			log.info("forceLocationSearch 또는 disableGeoFilter가 true이므로, 검색어 내 지역 정보는 무시하고 dto.lat/lng를 검색 중심으로 사용합니다.");
 			// searchLat, searchLng는 이미 dto.getLat(), dto.getLng()로 초기화되어 있으므로 추가 작업 불필요
 		} else {
 			String fullAddressFromAnalysis = analyzedAddress.getFullAddress();
@@ -162,6 +170,46 @@ public class ElasticService {
 
 		Page<PlaceSearchResponseDto> page = new PageImpl<>(dtoPage, pageable, resultTotalHits);
 		return new SearchServiceResult(page, searchLat, searchLng);
+	}
+
+	/**
+	 * 장소 검색 후, 해당 위치 기반으로 주변 주차장을 검색하는 2단계 로직을 수행합니다.
+	 * @param request
+	 * @return PageResponse<ParkingLotNearbyResponse>
+	 * @throws IOException
+	 */
+	public PageResponse<ParkingLotNearbyResponse> searchParkingLotsNearPlace(SearchRequestDto request) throws IOException {
+		double centerLat;
+		double centerLng;
+
+		// 쿼리가 비어있고, 좌표가 있는 경우 좌표 기반으로 검색
+		if (!org.springframework.util.StringUtils.hasText(request.getQuery()) && request.getLat() != null && request.getLng() != null) {
+			centerLat = request.getLat();
+			centerLng = request.getLng();
+			log.info("좌표 기반으로 주차장 검색을 시작합니다. Lat: {}, Lng: {}", centerLat, centerLng);
+		}
+		// 쿼리가 있는 경우, ES로 장소 검색 후 좌표 추출
+		else if (org.springframework.util.StringUtils.hasText(request.getQuery())) {
+			log.info("장소 검색어 '{}' 기반으로 주차장 검색을 시작합니다.", request.getQuery());
+			SearchServiceResult placeSearchResult = this.elasticSearch(request, 1, 1);
+			centerLat = placeSearchResult.getSearchCenterLat();
+			centerLng = placeSearchResult.getSearchCenterLng();
+		}
+		// 둘 다 없는 경우
+		else {
+			throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "좌표 또는 검색어가 필요합니다.");
+		}
+
+		// 2. 주차장 검색 서비스에 사용할 요청 객체를 준비합니다.
+		NearbySearchRequest parkingRequest = new NearbySearchRequest();
+		parkingRequest.setLat(centerLat);
+		parkingRequest.setLng(centerLng);
+		parkingRequest.setRadius(1.0); // 1km 반경
+		parkingRequest.setPage(request.getPage()); // 원본 요청의 페이지 번호 사용
+		parkingRequest.setSize(10); // 기본 페이지 크기
+
+		// 3. parkingLotService를 호출하여 좌표 기반으로 주변 주차장을 검색합니다.
+		return parkingLotService.findNearby(parkingRequest);
 	}
 
 	/**
@@ -279,3 +327,4 @@ public class ElasticService {
 	}
 
 }
+

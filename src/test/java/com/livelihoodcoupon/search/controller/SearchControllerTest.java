@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
+import com.livelihoodcoupon.common.config.SearchProperties;
 import com.livelihoodcoupon.common.exception.BusinessException;
 import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.place.entity.Place;
@@ -31,25 +33,36 @@ import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.repository.SearchRepository;
 import com.livelihoodcoupon.search.service.ElasticPlaceService;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.RedisWordRegister;
+import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
+import com.livelihoodcoupon.parkinglot.service.ParkingLotService;
+import com.livelihoodcoupon.search.dto.PageResponse;
 import com.livelihoodcoupon.search.service.SearchService;
 
 @DisplayName("Search 통합테스트")
 @WebMvcTest(SearchController.class)
+@Import(SearchProperties.class)
 public class SearchControllerTest {
 
 	List<Place> places = null;
 	@Autowired
 	private MockMvc mockMvc;
 
+	@Autowired
+	private SearchProperties searchProperties;
+
 	@MockitoBean
 	private SearchService searchService;
 
 	@MockitoBean
 	private ElasticService elasticService;
+
+	@MockitoBean
+	private ParkingLotService parkingLotService;
 
 	@Mock
 	private RedisWordRegister redisWordRegister;
@@ -90,7 +103,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -137,7 +151,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1, place2);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -175,7 +190,8 @@ public class SearchControllerTest {
 		List<SearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<SearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 2);
-		given(searchService.search(req, 10, 100)).willReturn(pageList);
+		given(searchService.search(req, searchProperties.getPageSize(), searchProperties.getMaxResults())).willReturn(
+			pageList);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -214,7 +230,9 @@ public class SearchControllerTest {
 		List<PlaceSearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<PlaceSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
-		when(elasticService.elasticSearch(req, 10, 100)).thenReturn(pageList);
+		SearchServiceResult result = new SearchServiceResult(pageList, req.getLat(), req.getLng());
+		when(elasticService.elasticSearch(req, searchProperties.getPageSize(),
+			searchProperties.getMaxResults())).thenReturn(result);
 
 		//when
 		ResultActions resultActions = mockMvc.perform(
@@ -395,6 +413,79 @@ public class SearchControllerTest {
 			.andDo(print())
 			.andExpect(MockMvcResultMatchers.jsonPath("$.success").value(false))
 			.andExpect(MockMvcResultMatchers.jsonPath("$.error.message").value("검색 결과가 없습니다."));
+	}
+
+	@Test
+	@DisplayName("주변 주차장 검색 테스트 성공")
+	void searchNearbyParkingLots_success() throws Exception {
+		// given
+		String query = "강남역";
+		Page<ParkingLotNearbyResponse> page = new PageImpl<>(List.of(ParkingLotNearbyResponse.builder().id(1L).parkingLotName("테스트 주차장").build()));
+		PageResponse<ParkingLotNearbyResponse> mockResponse = new PageResponse<>(page, 10, 37.5, 127.0);
+
+		given(parkingLotService.searchByQueryOrCoord(any(SearchRequestDto.class))).willReturn(mockResponse);
+
+		// when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/search/parkinglots")
+				.param("query", query)
+		);
+
+		// then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.content[0].parkingLotName").value("테스트 주차장"));
+	}
+
+	@Test
+	@DisplayName("주변 주차장 검색 파라미터 없을 시 실패")
+	void searchNearbyParkingLots_badRequest() throws Exception {
+		// given
+		given(parkingLotService.searchByQueryOrCoord(any(SearchRequestDto.class)))
+			.willThrow(new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "좌표 또는 검색어가 필요합니다."));
+
+		// when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/search/parkinglots")
+		);
+
+		// then
+		resultActions.andExpect(status().isBadRequest())
+			.andDo(print())
+			.andExpect(jsonPath("$.success").value(false))
+			.andExpect(jsonPath("$.error.message").value("좌표 또는 검색어가 필요합니다."));
+	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 성공")
+	void searchParkingLotsNearPlace_success() throws Exception {
+		// given
+		SearchRequestDto request = SearchRequestDto.builder()
+			.query("강남역")
+			.build();
+
+		ParkingLotNearbyResponse parkingLotResponse = ParkingLotNearbyResponse.builder()
+			.id(1L)
+			.parkingLotName("강남역 근처 주차장")
+			.build();
+		Page<ParkingLotNearbyResponse> page = new PageImpl<>(List.of(parkingLotResponse));
+		PageResponse<ParkingLotNearbyResponse> mockResponse = new PageResponse<>(page, 10, 37.4979, 127.0276);
+
+		given(elasticService.searchParkingLotsNearPlace(any(SearchRequestDto.class))).willReturn(mockResponse);
+
+		// when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/searches/parkinglots")
+				.param("query", "강남역")
+		);
+
+		// then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.content").isArray())
+			.andExpect(jsonPath("$.data.content[0].parkingLotName").value("강남역 근처 주차장"));
 	}
 
 }

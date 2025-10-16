@@ -1,5 +1,8 @@
 package com.livelihoodcoupon.search.service;
 
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -16,12 +19,24 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.mockito.ArgumentCaptor;
+import java.util.Collections;
 
 import com.livelihoodcoupon.common.dto.Coordinate;
+import com.livelihoodcoupon.common.exception.BusinessException;
+import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.common.service.KakaoApiService;
+import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
+import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
+import com.livelihoodcoupon.parkinglot.service.ParkingLotService;
+import com.livelihoodcoupon.search.dto.PageResponse;
+import com.livelihoodcoupon.search.dto.AnalyzedAddress;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
+import com.livelihoodcoupon.search.dto.SearchServiceResult;
 import com.livelihoodcoupon.search.dto.SearchToken;
 import com.livelihoodcoupon.search.entity.PlaceDocument;
 import com.livelihoodcoupon.search.repository.SearchRepository;
@@ -38,6 +53,7 @@ import reactor.core.publisher.Mono;
 
 @DisplayName("SearchService 단위 테스트")
 @ExtendWith(MockitoExtension.class)
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 class ElasticServiceTest {
 
 	@Mock
@@ -60,12 +76,14 @@ class ElasticServiceTest {
 	private AnalyzerTest analyzerTest;
 	@Mock
 	private ElasticsearchClient client;
+	@Mock
+	private ParkingLotService parkingLotService;
 
 	@BeforeEach
 	void setUp() {
 		MockitoAnnotations.openMocks(this);
 		elasticService = new ElasticService(elasticPlaceService, searchService, kakaoApiService,
-			analyzerTest, redisService);
+			analyzerTest, redisService, parkingLotService);
 	}
 
 	@Test
@@ -117,13 +135,16 @@ class ElasticServiceTest {
 			.shards(new ShardStatistics.Builder().total(1).successful(1).failed(0).build())
 			.build();
 
-		when(elasticPlaceService.searchPlace(any(), any(), any())).thenReturn(mockResponse);
+		when(elasticPlaceService.searchPlace(any(AnalyzedAddress.class), any(), any(), any(Double.class),
+			any(Double.class), any(Double.class), any(Double.class))).thenReturn(
+			mockResponse);
 		when(searchService.calculateDistance(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
 			.thenReturn(1.23);
 		Coordinate mockCoordinate = new Coordinate(37.5, 127.0);
 
 		//when
-		Page<PlaceSearchResponseDto> page = elasticService.elasticSearch(req, 10, 100);
+		SearchServiceResult result = elasticService.elasticSearch(req, 10, 100);
+		Page<PlaceSearchResponseDto> page = result.getPage();
 
 		//then
 		assertThat(page.getContent())
@@ -204,12 +225,12 @@ class ElasticServiceTest {
 		when(redisService.getWordInfo(anyString())).thenReturn("address");
 
 		// When
-		List<SearchToken> tokens = elasticService.analysisChat(query);
+		AnalyzedAddress analyzedAddress = elasticService.analysisChat(query);
 
 		// Then
-		assertNotNull(tokens);
-		assertEquals(3, tokens.size());
-		assertTrue(tokens.stream().anyMatch(token -> "address".equals(token.getFieldName())));
+		assertNotNull(analyzedAddress);
+		assertEquals(3, analyzedAddress.getResultList().size());
+		assertTrue(analyzedAddress.getResultList().stream().anyMatch(token -> "address".equals(token.getFieldName())));
 	}
 
 	@Test
@@ -226,4 +247,74 @@ class ElasticServiceTest {
 		// Then
 		assertEquals("address", result);
 	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 (쿼리 사용) 성공")
+	void searchParkingLotsNearPlace_withQuery_success() throws IOException {
+		// given
+		ElasticService spyElasticService = spy(elasticService);
+		SearchRequestDto request = new SearchRequestDto();
+		request.setQuery("강남역");
+		request.setLat(null); // 쿼리 기반 검색을 위해 좌표는 null로 설정
+		request.setLng(null);
+
+		double expectedLat = 37.4979;
+		double expectedLng = 127.0276;
+		SearchServiceResult mockPlaceSearchResult = new SearchServiceResult(Page.empty(), expectedLat, expectedLng);
+
+		// elasticSearch 메소드 모의 처리
+		doReturn(mockPlaceSearchResult).when(spyElasticService).elasticSearch(any(SearchRequestDto.class), eq(1), eq(1));
+		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(new PageResponse<>(Page.empty(), 10, expectedLat, expectedLng));
+
+		// when
+		spyElasticService.searchParkingLotsNearPlace(request);
+
+		// then
+		verify(spyElasticService, times(1)).elasticSearch(request, 1, 1); // elasticSearch 호출 검증
+		ArgumentCaptor<NearbySearchRequest> captor = ArgumentCaptor.forClass(NearbySearchRequest.class);
+		verify(parkingLotService, times(1)).findNearby(captor.capture()); // findNearby 호출 검증
+		assertThat(captor.getValue().getLat()).isEqualTo(expectedLat);
+		assertThat(captor.getValue().getLng()).isEqualTo(expectedLng);
+	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 (좌표 사용) 성공")
+	void searchParkingLotsNearPlace_withCoords_success() throws IOException {
+		// given
+		ElasticService spyElasticService = spy(elasticService);
+		SearchRequestDto request = new SearchRequestDto();
+		request.setQuery(null); // 좌표 기반 검색을 위해 쿼리는 null로 설정
+		request.setLat(37.5000);
+		request.setLng(127.0300);
+
+		when(parkingLotService.findNearby(any(NearbySearchRequest.class))).thenReturn(new PageResponse<>(Page.empty(), 10, request.getLat(), request.getLng()));
+
+		// when
+		spyElasticService.searchParkingLotsNearPlace(request);
+
+		// then
+		verify(spyElasticService, never()).elasticSearch(any(), anyInt(), anyInt()); // elasticSearch 호출되지 않음 검증
+		ArgumentCaptor<NearbySearchRequest> captor = ArgumentCaptor.forClass(NearbySearchRequest.class);
+		verify(parkingLotService, times(1)).findNearby(captor.capture()); // findNearby 호출 검증
+		assertThat(captor.getValue().getLat()).isEqualTo(request.getLat());
+		assertThat(captor.getValue().getLng()).isEqualTo(request.getLng());
+	}
+
+	@Test
+	@DisplayName("장소 기반 주변 주차장 검색 (입력값 없음) 실패")
+	void searchParkingLotsNearPlace_withNoInput_throwsException() {
+		// given
+		SearchRequestDto request = new SearchRequestDto();
+		request.setQuery(""); // 쿼리 없음
+		request.setLat(null); // 좌표 없음
+		request.setLng(null);
+
+		// when & then
+		BusinessException exception = assertThrows(BusinessException.class, () -> {
+			elasticService.searchParkingLotsNearPlace(request);
+		});
+
+		assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INVALID_INPUT_VALUE);
+	}
+
 }

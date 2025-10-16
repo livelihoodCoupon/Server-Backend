@@ -30,6 +30,7 @@ import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.place.entity.Place;
 import com.livelihoodcoupon.search.dto.AutocompleteDto;
 import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
+import com.livelihoodcoupon.search.dto.ParkingLotSearchResponseDto;
 import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
 import com.livelihoodcoupon.search.dto.SearchRequestDto;
 import com.livelihoodcoupon.search.dto.SearchResponseDto;
@@ -230,7 +231,7 @@ public class SearchControllerTest {
 		List<PlaceSearchResponseDto> searchResponses = List.of(place1);
 		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
 		Page<PlaceSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
-		SearchServiceResult result = new SearchServiceResult(pageList, req.getLat(), req.getLng());
+		SearchServiceResult<PlaceSearchResponseDto> result = new SearchServiceResult<>(pageList, req.getLat(), req.getLng());
 		when(elasticService.elasticSearch(req, searchProperties.getPageSize(),
 			searchProperties.getMaxResults())).thenReturn(result);
 
@@ -420,7 +421,7 @@ public class SearchControllerTest {
 	void searchNearbyParkingLots_success() throws Exception {
 		// given
 		String query = "강남역";
-		Page<ParkingLotNearbyResponse> page = new PageImpl<>(List.of(ParkingLotNearbyResponse.builder().id(1L).parkingLotName("테스트 주차장").build()));
+		Page<ParkingLotNearbyResponse> page = new PageImpl<>(List.of(ParkingLotNearbyResponse.builder().id(1L).parkingLotNm("테스트 주차장").build()));
 		PageResponse<ParkingLotNearbyResponse> mockResponse = new PageResponse<>(page, 10, 37.5, 127.0);
 
 		given(parkingLotService.searchByQueryOrCoord(any(SearchRequestDto.class))).willReturn(mockResponse);
@@ -435,7 +436,7 @@ public class SearchControllerTest {
 		resultActions.andExpect(status().isOk())
 			.andDo(print())
 			.andExpect(jsonPath("$.success").value(true))
-			.andExpect(jsonPath("$.data.content[0].parkingLotName").value("테스트 주차장"));
+			.andExpect(jsonPath("$.data.content[0].parkingLotNm").value("테스트 주차장"));
 	}
 
 	@Test
@@ -467,7 +468,7 @@ public class SearchControllerTest {
 
 		ParkingLotNearbyResponse parkingLotResponse = ParkingLotNearbyResponse.builder()
 			.id(1L)
-			.parkingLotName("강남역 근처 주차장")
+			.parkingLotNm("강남역 근처 주차장")
 			.build();
 		Page<ParkingLotNearbyResponse> page = new PageImpl<>(List.of(parkingLotResponse));
 		PageResponse<ParkingLotNearbyResponse> mockResponse = new PageResponse<>(page, 10, 37.4979, 127.0276);
@@ -485,7 +486,47 @@ public class SearchControllerTest {
 			.andDo(print())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data.content").isArray())
-			.andExpect(jsonPath("$.data.content[0].parkingLotName").value("강남역 근처 주차장"));
+			.andExpect(jsonPath("$.data.content[0].parkingLotNm").value("강남역 근처 주차장"));
+	}
+
+	@Test
+	@DisplayName("엘라스틱 주차장 검색 테스트 성공")
+	void searchElasticParkingLots_success() throws Exception {
+		//given
+		SearchRequestDto req = SearchRequestDto.builder().lat(37.5).lng(127.0).build();
+		req.initDefaults();
+
+		ParkingLotSearchResponseDto parkingLot = ParkingLotSearchResponseDto.builder()
+			.id(123L)
+			.parkingLotNm("테스트 주차장")
+			.roadAddress("테스트 도로명 주소")
+			.build();
+
+		List<ParkingLotSearchResponseDto> searchResponses = List.of(parkingLot);
+		Pageable pageable = PageRequest.of(req.getPage() - 1, 10, Sort.unsorted());
+		Page<ParkingLotSearchResponseDto> pageList = new PageImpl<>(searchResponses, pageable, 1);
+		SearchServiceResult<ParkingLotSearchResponseDto> result = new SearchServiceResult<>(pageList, req.getLat(), req.getLng());
+
+		when(elasticService.elasticSearchParkingLots(req, searchProperties.getPageSize(),
+			searchProperties.getMaxResults())).thenReturn(result);
+
+		//when
+		ResultActions resultActions = mockMvc.perform(
+			get("/api/searches/parkinglots-es")
+				.param("lat", "37.5")
+				.param("lng", "127.0")
+		);
+
+		//then
+		resultActions.andExpect(status().isOk())
+			.andDo(print())
+			.andExpect(MockMvcResultMatchers.status().isOk())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content").isArray())
+			.andExpect(MockMvcResultMatchers.jsonPath("$.data.content.length()").value(1))
+			.andExpect(
+				MockMvcResultMatchers.jsonPath("$.data.content[0].id").value(123));
 	}
 
 }
+
+	

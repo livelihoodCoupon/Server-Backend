@@ -2,16 +2,9 @@ package com.livelihoodcoupon.search.controller;
 
 import com.livelihoodcoupon.common.config.SearchProperties;
 import com.livelihoodcoupon.common.response.CustomApiResponse;
-import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
 import com.livelihoodcoupon.parkinglot.service.ParkingLotService;
-import com.livelihoodcoupon.search.dto.AutocompleteDto;
-import com.livelihoodcoupon.search.dto.AutocompleteResponseDto;
-import com.livelihoodcoupon.search.dto.PageResponse;
-import com.livelihoodcoupon.search.dto.PlaceSearchResponseDto;
-import com.livelihoodcoupon.search.dto.SearchRequestDto;
-import com.livelihoodcoupon.search.dto.SearchResponseDto;
-import com.livelihoodcoupon.search.dto.SearchServiceResult;
+import com.livelihoodcoupon.search.dto.*;
 import com.livelihoodcoupon.search.service.ElasticService;
 import com.livelihoodcoupon.search.service.SearchService;
 import jakarta.validation.Valid;
@@ -70,9 +63,22 @@ public class SearchController {
 		//request 기본 세팅
 		request.initDefaults();
 
-		SearchServiceResult result = elasticService.elasticSearch(request, searchProperties.getPageSize(), searchProperties.getMaxResults());
+		SearchServiceResult<PlaceSearchResponseDto> result = elasticService.elasticSearch(request, searchProperties.getPageSize(), searchProperties.getMaxResults());
 		Page<PlaceSearchResponseDto> pageList = result.getPage();
 		PageResponse<PlaceSearchResponseDto> searchResponse = new PageResponse<>(pageList, searchProperties.getPageSize(), result.getSearchCenterLat(), result.getSearchCenterLng());
+
+		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
+	}
+
+	@GetMapping("/searches/parkinglots-es")
+	public ResponseEntity<CustomApiResponse<PageResponse<ParkingLotSearchResponseDto>>> searchElasticParkingLots(
+			@Valid @ModelAttribute SearchRequestDto request) throws IOException {
+
+		request.initDefaults();
+
+		SearchServiceResult<ParkingLotSearchResponseDto> result = elasticService.elasticSearchParkingLots(request, searchProperties.getPageSize(), searchProperties.getMaxResults());
+		Page<ParkingLotSearchResponseDto> pageList = result.getPage();
+		PageResponse<ParkingLotSearchResponseDto> searchResponse = new PageResponse<>(pageList, searchProperties.getPageSize(), result.getSearchCenterLat(), result.getSearchCenterLng());
 
 		return ResponseEntity.ok().body(CustomApiResponse.success(searchResponse));
 	}

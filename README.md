@@ -1,5 +1,6 @@
 # Livelihood Coupon Backend
 - [Livelihood Coupon Frontend 바로가기](https://github.com/livelihoodCoupon/Frontend)
+- [Demo ▶️ Youtube 바로가기](https://youtu.be/VIBkQQZsk20?si=UZKAkuEXRRWQ3hej)
 
 > **민생회복쿠폰 지도 서비스의 백엔드** 레포지토리입니다. </br>
 > Spring Boot와 Elasticsearch를 기반으로 데이터 수집, 검색, 경로 안내 API를 제공합니다.

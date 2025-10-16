@@ -1,6 +1,8 @@
 package com.livelihoodcoupon.parkinglot.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.livelihoodcoupon.common.exception.BusinessException;
+import com.livelihoodcoupon.common.exception.ErrorCode;
 import com.livelihoodcoupon.parkinglot.dto.NearbySearchRequest;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotDetailResponse;
 import com.livelihoodcoupon.parkinglot.dto.ParkingLotNearbyResponse;
@@ -49,7 +51,7 @@ class ParkingLotControllerTest {
 
         ParkingLotNearbyResponse responseItem = ParkingLotNearbyResponse.builder()
                 .id(1L)
-                .parkingLotName("서울시청 주차장")
+                .parkingLotNm("서울시청 주차장")
                 .roadAddress("서울 중구 세종대로 110")
                 .lat(37.5665)
                 .lng(126.9780)
@@ -71,7 +73,7 @@ class ParkingLotControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.content[0].parkingLotName").value("서울시청 주차장"));
+                .andExpect(jsonPath("$.data.content[0].parkingLotNm").value("서울시청 주차장"));
     }
 
     @Test
@@ -81,7 +83,7 @@ class ParkingLotControllerTest {
         Long parkingLotId = 1L;
         ParkingLotDetailResponse detailResponse = ParkingLotDetailResponse.builder()
                 .id(parkingLotId)
-                .parkingLotName("테스트 주차장")
+                .parkingLotNm("테스트 주차장")
                 .roadAddress("테스트 도로명 주소")
                 .build();
 
@@ -92,7 +94,23 @@ class ParkingLotControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.parkingLotName").value("테스트 주차장"));
+                .andExpect(jsonPath("$.data.parkingLotNm").value("테스트 주차장"));
+    }
+
+    @Test
+    @DisplayName("주차장 상세 정보 조회 실패 - ID를 찾을 수 없음")
+    void getLotDetails_fail_when_not_found() throws Exception {
+        // given
+        Long parkingLotId = 999L;
+        given(parkingLotService.getParkingLotDetails(parkingLotId))
+                .willThrow(new BusinessException(ErrorCode.NOT_FOUND, "해당 주차장을 찾을 수 없습니다."));
+
+        // when & then
+        mockMvc.perform(get("/api/parkinglots/{id}", parkingLotId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("NOT_FOUND"));
     }
 
     @Test

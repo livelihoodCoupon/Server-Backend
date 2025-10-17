@@ -67,4 +67,4 @@ elasticsearch:
 # 검색 설정
 search:
   page-size: 100
-  max-results: 100
+  max-results: 1000
